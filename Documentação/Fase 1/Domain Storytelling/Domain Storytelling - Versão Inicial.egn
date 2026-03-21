@@ -53,19 +53,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 1129,
-            "y": 787
+            "x": 1284,
+            "y": 1477
           },
-          "x": 1128,
-          "y": 749
+          "x": 1283,
+          "y": 1439
         },
         {
           "original": {
-            "x": 1125,
-            "y": 535
+            "x": 1280,
+            "y": 1225
           },
-          "x": 1125,
-          "y": 544
+          "x": 1280,
+          "y": 1234
         }
       ],
       "source": "shape_1140",
@@ -78,19 +78,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 1129,
-            "y": 497
+            "x": 1284,
+            "y": 1187
           },
-          "x": 1148,
-          "y": 474
+          "x": 1303,
+          "y": 1164
         },
         {
           "original": {
-            "x": 1247,
-            "y": 354
+            "x": 1402,
+            "y": 1044
           },
-          "x": 1197,
-          "y": 415
+          "x": 1352,
+          "y": 1105
         }
       ],
       "source": "shape_5178",
@@ -105,19 +105,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 232,
-            "y": 1584
+            "x": -843,
+            "y": 2101
           },
-          "x": 260,
-          "y": 1569
+          "x": -815,
+          "y": 2086
         },
         {
           "original": {
-            "x": 714,
-            "y": 1327
+            "x": -361,
+            "y": 1844
           },
-          "x": 664,
-          "y": 1354
+          "x": -411,
+          "y": 1871
         }
       ],
       "source": "shape_5686",
@@ -133,19 +133,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 1044,
-            "y": 1747
+            "x": -31,
+            "y": 2264
           },
-          "x": 1087,
-          "y": 1747
+          "x": 12,
+          "y": 2264
         },
         {
           "original": {
-            "x": 1326,
-            "y": 1747
+            "x": 251,
+            "y": 2264
           },
-          "x": 1288,
-          "y": 1747
+          "x": 213,
+          "y": 2264
         }
       ],
       "source": "shape_0793",
@@ -189,19 +189,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 1404,
-            "y": 1241
+            "x": 1559,
+            "y": 1931
           },
-          "x": 1447,
-          "y": 1241
+          "x": 1602,
+          "y": 1931
         },
         {
           "original": {
-            "x": 1734,
-            "y": 1241
+            "x": 1889,
+            "y": 1931
           },
-          "x": 1696,
-          "y": 1241
+          "x": 1851,
+          "y": 1931
         }
       ],
       "source": "shape_4696",
@@ -245,19 +245,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 1395,
-            "y": 787
+            "x": 1550,
+            "y": 1477
           },
-          "x": 1357,
-          "y": 787
+          "x": 1512,
+          "y": 1477
         },
         {
           "original": {
-            "x": 1129,
-            "y": 787
+            "x": 1284,
+            "y": 1477
           },
-          "x": 1172,
-          "y": 787
+          "x": 1327,
+          "y": 1477
         }
       ],
       "source": "shape_8391",
@@ -273,19 +273,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 702,
-            "y": 1353
+            "x": -373,
+            "y": 1870
           },
-          "x": 733,
-          "y": 1373
+          "x": -342,
+          "y": 1890
         },
         {
           "original": {
-            "x": 1012,
-            "y": 1553
+            "x": -63,
+            "y": 2070
           },
-          "x": 1006,
-          "y": 1549
+          "x": -69,
+          "y": 2066
         }
       ],
       "source": "shape_3074",
@@ -301,19 +301,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 581,
-            "y": 787
+            "x": -218,
+            "y": 1078
           },
-          "x": 624,
-          "y": 787
+          "x": -175,
+          "y": 1078
         },
         {
           "original": {
-            "x": 869,
-            "y": 787
+            "x": 70,
+            "y": 1078
           },
-          "x": 831,
-          "y": 787
+          "x": 32,
+          "y": 1078
         }
       ],
       "source": "shape_3459",
@@ -417,7 +417,7 @@
             "y": 369
           },
           "x": 221,
-          "y": 397
+          "y": 412
         },
         {
           "original": {
@@ -439,19 +439,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 1129,
-            "y": 787
+            "x": 1284,
+            "y": 1477
           },
-          "x": 1147,
-          "y": 762
+          "x": 1302,
+          "y": 1452
         },
         {
           "original": {
-            "x": 1235,
-            "y": 642
+            "x": 1390,
+            "y": 1332
           },
-          "x": 1215,
-          "y": 670
+          "x": 1370,
+          "y": 1360
         }
       ],
       "source": "shape_1140",
@@ -494,19 +494,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 1395,
-            "y": 787
+            "x": 1550,
+            "y": 1477
           },
-          "x": 1396,
-          "y": 834
+          "x": 1551,
+          "y": 1524
         },
         {
           "original": {
-            "x": 1399,
-            "y": 1005
+            "x": 1554,
+            "y": 1695
           },
-          "x": 1399,
-          "y": 987
+          "x": 1554,
+          "y": 1677
         }
       ],
       "source": "shape_8391",
@@ -522,19 +522,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 194,
-            "y": 787
+            "x": -605,
+            "y": 1078
           },
-          "x": 222,
-          "y": 772
+          "x": -574,
+          "y": 1066
         },
         {
           "original": {
-            "x": 502,
-            "y": 626
+            "x": -297,
+            "y": 959
           },
-          "x": 495,
-          "y": 630
+          "x": -304,
+          "y": 962
         }
       ],
       "source": "shape_9289",
@@ -575,23 +575,23 @@
       "waypoints": [
         {
           "original": {
-            "x": 497,
-            "y": 913
+            "x": -302,
+            "y": 1204
           },
-          "x": 540,
-          "y": 913
+          "x": -259,
+          "y": 1204
         },
         {
-          "x": 702,
-          "y": 913
+          "x": -97,
+          "y": 1204
         },
         {
           "original": {
-            "x": 869,
-            "y": 787
+            "x": 70,
+            "y": 1078
           },
-          "x": 831,
-          "y": 816
+          "x": 32,
+          "y": 1107
         }
       ],
       "source": "shape_4182",
@@ -605,19 +605,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 869,
-            "y": 787
+            "x": 70,
+            "y": 1078
           },
-          "x": 842,
-          "y": 749
+          "x": 43,
+          "y": 1040
         },
         {
           "original": {
-            "x": 744,
-            "y": 611
+            "x": -55,
+            "y": 902
           },
-          "x": 785,
-          "y": 668
+          "x": -14,
+          "y": 959
         }
       ],
       "source": "shape_5835",
@@ -632,19 +632,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 194,
-            "y": 787
+            "x": -605,
+            "y": 1078
           },
-          "x": 227,
-          "y": 805
+          "x": -572,
+          "y": 1096
         },
         {
           "original": {
-            "x": 470,
-            "y": 936
+            "x": -329,
+            "y": 1227
           },
-          "x": 459,
-          "y": 930
+          "x": -340,
+          "y": 1221
         }
       ],
       "source": "shape_9289",
@@ -660,23 +660,23 @@
       "waypoints": [
         {
           "original": {
-            "x": 1734,
-            "y": 1222
+            "x": 1889,
+            "y": 1912
           },
-          "x": 1733,
-          "y": 1203
+          "x": 1888,
+          "y": 1893
         },
         {
-          "x": 1723,
-          "y": 843
+          "x": 1878,
+          "y": 1533
         },
         {
           "original": {
-            "x": 1395,
-            "y": 787
+            "x": 1550,
+            "y": 1477
           },
-          "x": 1439,
-          "y": 795
+          "x": 1594,
+          "y": 1485
         }
       ],
       "source": "shape_9315",
@@ -692,19 +692,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 1044,
-            "y": 1585
+            "x": -31,
+            "y": 2102
           },
-          "x": 1044,
-          "y": 1632
+          "x": -31,
+          "y": 2149
         },
         {
           "original": {
-            "x": 1044,
-            "y": 1747
+            "x": -31,
+            "y": 2264
           },
-          "x": 1044,
-          "y": 1709
+          "x": -31,
+          "y": 2226
         }
       ],
       "source": "shape_9716",
@@ -718,19 +718,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 1044,
-            "y": 1585
+            "x": -31,
+            "y": 2102
           },
-          "x": 1064,
-          "y": 1563
+          "x": -11,
+          "y": 2080
         },
         {
           "original": {
-            "x": 1175,
-            "y": 1440
+            "x": 100,
+            "y": 1957
           },
-          "x": 1125,
-          "y": 1495
+          "x": 50,
+          "y": 2012
         }
       ],
       "source": "shape_9716",
@@ -745,23 +745,23 @@
       "waypoints": [
         {
           "original": {
-            "x": 533,
-            "y": 1055
+            "x": -266,
+            "y": 1346
           },
-          "x": 561,
-          "y": 1041
+          "x": -238,
+          "y": 1332
         },
         {
-          "x": 744,
-          "y": 951
+          "x": -55,
+          "y": 1242
         },
         {
           "original": {
-            "x": 869,
-            "y": 787
+            "x": 70,
+            "y": 1078
           },
-          "x": 833,
-          "y": 834
+          "x": 34,
+          "y": 1125
         }
       ],
       "source": "shape_1547",
@@ -833,19 +833,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 232,
-            "y": 1584
+            "x": -843,
+            "y": 2101
           },
-          "x": 255,
-          "y": 1617
+          "x": -820,
+          "y": 2144
         },
         {
           "original": {
-            "x": 472,
-            "y": 1872
+            "x": -603,
+            "y": 2389
           },
-          "x": 459,
-          "y": 1856
+          "x": -616,
+          "y": 2373
         }
       ],
       "source": "shape_5686",
@@ -889,19 +889,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 1539,
-            "y": 335
+            "x": 1694,
+            "y": 1025
           },
-          "x": 1536,
-          "y": 382
+          "x": 1691,
+          "y": 1072
         },
         {
           "original": {
-            "x": 1529,
-            "y": 497
+            "x": 1684,
+            "y": 1187
           },
-          "x": 1531,
-          "y": 459
+          "x": 1686,
+          "y": 1149
         }
       ],
       "source": "shape_4080",
@@ -915,19 +915,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 1734,
-            "y": 1241
+            "x": 1889,
+            "y": 1931
           },
-          "x": 1755,
-          "y": 1219
+          "x": 1910,
+          "y": 1909
         },
         {
           "original": {
-            "x": 1938,
-            "y": 1025
+            "x": 2093,
+            "y": 1715
           },
-          "x": 1899,
-          "y": 1066
+          "x": 2054,
+          "y": 1756
         }
       ],
       "source": "shape_9315",
@@ -967,23 +967,23 @@
       "waypoints": [
         {
           "original": {
-            "x": 194,
-            "y": 787
+            "x": -605,
+            "y": 1078
           },
-          "x": 218,
-          "y": 820
+          "x": -581,
+          "y": 1121
         },
         {
-          "x": 360,
-          "y": 981
+          "x": -439,
+          "y": 1272
         },
         {
           "original": {
-            "x": 507,
-            "y": 1062
+            "x": -292,
+            "y": 1353
           },
-          "x": 495,
-          "y": 1055
+          "x": -304,
+          "y": 1346
         }
       ],
       "source": "shape_9289",
@@ -997,19 +997,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 702,
-            "y": 1353
+            "x": -373,
+            "y": 1870
           },
-          "x": 720,
-          "y": 1329
+          "x": -355,
+          "y": 1846
         },
         {
           "original": {
-            "x": 825,
-            "y": 1191
+            "x": -250,
+            "y": 1708
           },
-          "x": 794,
-          "y": 1232
+          "x": -281,
+          "y": 1749
         }
       ],
       "source": "shape_3074",
@@ -1106,19 +1106,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 232,
-            "y": 1584
+            "x": -843,
+            "y": 2101
           },
-          "x": 275,
-          "y": 1584
+          "x": -800,
+          "y": 2101
         },
         {
           "original": {
-            "x": 618,
-            "y": 1584
+            "x": -457,
+            "y": 2101
           },
-          "x": 580,
-          "y": 1584
+          "x": -495,
+          "y": 2101
         }
       ],
       "source": "shape_5686",
@@ -1160,19 +1160,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 869,
-            "y": 787
+            "x": 70,
+            "y": 1078
           },
-          "x": 883,
-          "y": 758
+          "x": 84,
+          "y": 1049
         },
         {
           "original": {
-            "x": 937,
-            "y": 647
+            "x": 138,
+            "y": 938
           },
-          "x": 909,
-          "y": 704
+          "x": 110,
+          "y": 995
         }
       ],
       "source": "shape_5835",
@@ -1185,19 +1185,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 618,
-            "y": 1584
+            "x": -457,
+            "y": 2101
           },
-          "x": 640,
-          "y": 1563
+          "x": -435,
+          "y": 2080
         },
         {
           "original": {
-            "x": 730,
-            "y": 1475
+            "x": -345,
+            "y": 1992
           },
-          "x": 687,
-          "y": 1516
+          "x": -388,
+          "y": 2033
         }
       ],
       "source": "shape_5564",
@@ -1212,19 +1212,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 497,
-            "y": 1868
+            "x": -578,
+            "y": 2385
           },
-          "x": 540,
-          "y": 1868
+          "x": -535,
+          "y": 2385
         },
         {
           "original": {
-            "x": 1018,
-            "y": 1868
+            "x": -57,
+            "y": 2385
           },
-          "x": 980,
-          "y": 1868
+          "x": -95,
+          "y": 2385
         }
       ],
       "source": "shape_9233",
@@ -1240,19 +1240,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 1529,
-            "y": 497
+            "x": 1684,
+            "y": 1187
           },
-          "x": 1491,
-          "y": 497
+          "x": 1646,
+          "y": 1187
         },
         {
           "original": {
-            "x": 1129,
-            "y": 497
+            "x": 1284,
+            "y": 1187
           },
-          "x": 1172,
-          "y": 497
+          "x": 1327,
+          "y": 1187
         }
       ],
       "source": "shape_0605",
@@ -1296,19 +1296,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 618,
-            "y": 1584
+            "x": -457,
+            "y": 2101
           },
-          "x": 662,
-          "y": 1585
+          "x": -413,
+          "y": 2102
         },
         {
           "original": {
-            "x": 1034,
-            "y": 1594
+            "x": -41,
+            "y": 2111
           },
-          "x": 1006,
-          "y": 1593
+          "x": -69,
+          "y": 2110
         }
       ],
       "source": "shape_5564",
@@ -1323,19 +1323,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 1395,
-            "y": 1025
+            "x": 1550,
+            "y": 1715
           },
-          "x": 1395,
-          "y": 1072
+          "x": 1550,
+          "y": 1762
         },
         {
           "original": {
-            "x": 1397,
-            "y": 1250
+            "x": 1552,
+            "y": 1940
           },
-          "x": 1397,
-          "y": 1203
+          "x": 1552,
+          "y": 1893
         }
       ],
       "source": "shape_4115",
@@ -1351,19 +1351,19 @@
       "waypoints": [
         {
           "original": {
-            "x": 194,
-            "y": 787
+            "x": -605,
+            "y": 1078
           },
-          "x": 237,
-          "y": 787
+          "x": -562,
+          "y": 1078
         },
         {
           "original": {
-            "x": 547,
-            "y": 789
+            "x": -252,
+            "y": 1080
           },
-          "x": 543,
-          "y": 789
+          "x": -256,
+          "y": 1080
         }
       ],
       "source": "shape_9289",
@@ -1375,29 +1375,32 @@
       "name": "CLIENTE",
       "id": "shape_0156",
       "x": 512,
-      "y": 80
+      "y": 80,
+      "parent": "shape_5110"
     },
     {
       "type": "domainStory:textAnnotation",
       "name": "",
       "id": "shape_0376",
-      "x": 1888,
-      "y": 1010,
+      "x": 2043,
+      "y": 1700,
       "text": "VIA BOTÃO NO EMAIL (ENDPOINT)",
-      "number": 56.426332288401255,
-      "height": 56.426332288401255,
-      "width": 99.99510188087774
+      "number": 56.42177589852008,
+      "height": 56.42177589852008,
+      "width": 99.96035940803382,
+      "parent": "shape_2127"
     },
     {
       "type": "domainStory:textAnnotation",
       "name": "",
       "id": "shape_0475",
-      "x": 680,
-      "y": 1460,
+      "x": -395,
+      "y": 1977,
       "text": "STATUS DA OS EM EXECUÇÃO",
-      "number": 56.426332288401255,
-      "height": 56.426332288401255,
-      "width": 99.99510188087774
+      "number": 56.42058652729384,
+      "height": 56.42058652729384,
+      "width": 99.99274099883856,
+      "parent": "shape_6570"
     },
     {
       "type": "domainStory:textAnnotation",
@@ -1414,40 +1417,52 @@
       "type": "domainStory:textAnnotation",
       "name": "",
       "id": "shape_0536",
-      "x": 887,
-      "y": 632,
+      "x": 88,
+      "y": 923,
       "text": "MECANICO PODE INCLUIR ANOTAÇÕES",
       "number": 72,
       "height": 72,
-      "width": 100
+      "width": 100,
+      "parent": "shape_3160"
     },
     {
       "type": "domainStory:workObjectDocument",
       "name": "ORÇAMENTO",
       "id": "shape_0605",
-      "x": 1491,
-      "y": 459
+      "x": 1646,
+      "y": 1149
     },
     {
       "type": "domainStory:workObjectDocument",
       "name": "PEÇA",
       "id": "shape_0793",
-      "x": 1006,
-      "y": 1709
+      "x": -69,
+      "y": 2226
     },
     {
       "type": "domainStory:workObjectDocument",
       "name": "ORÇAMENTO",
       "id": "shape_1140",
-      "x": 1091,
-      "y": 749
+      "x": 1246,
+      "y": 1439
     },
     {
       "type": "domainStory:workObjectDocument",
       "name": "ATIVIDADE",
       "id": "shape_1547",
-      "x": 495,
-      "y": 1017
+      "x": -304,
+      "y": 1308,
+      "parent": "shape_3160"
+    },
+    {
+      "type": "domainStory:group",
+      "name": "CONTROLE DE ESTOQUE DE PEÇAS",
+      "id": "shape_1641",
+      "pickedColor": "#000000",
+      "x": 2713,
+      "y": 429,
+      "height": 839,
+      "width": 1300
     },
     {
       "type": "domainStory:actorPerson",
@@ -1457,47 +1472,60 @@
       "y": 585
     },
     {
+      "type": "domainStory:group",
+      "name": "ORÇAMENTO GERADO AUTOMATICAMENTE + ENVIO DO ORÇAMENTO PARA O CLIENTE",
+      "id": "shape_2127",
+      "pickedColor": "#000000",
+      "x": 983,
+      "y": 896,
+      "height": 1178,
+      "width": 1180
+    },
+    {
       "name": "ESTOQUE",
       "id": "shape_2194",
       "type": "domainStory:workObjectDocument",
-      "x": 1288,
-      "y": 1709
+      "x": 213,
+      "y": 2226
     },
     {
       "type": "domainStory:workObjectDocument",
       "name": "VEICULO",
       "id": "shape_2304",
-      "x": 495,
-      "y": 573
+      "x": -304,
+      "y": 906,
+      "parent": "shape_3160"
     },
     {
       "type": "domainStory:textAnnotation",
       "name": "",
       "id": "shape_2444",
-      "x": 694,
-      "y": 596,
+      "x": -105,
+      "y": 887,
       "text": "STATUS DA OS EM DIAGNOSTICO",
       "number": 72.10031347962382,
       "height": 72.10031347962382,
-      "width": 99.99510188087774
+      "width": 99.99510188087774,
+      "parent": "shape_5110"
     },
     {
       "type": "domainStory:textAnnotation",
       "name": "",
       "id": "shape_2870",
-      "x": 1197,
-      "y": 339,
+      "x": 1352,
+      "y": 1029,
       "text": "STATUS DA OS AGUARDANDO APROVAÇÃO",
-      "number": 86.20689655172414,
-      "height": 86.20689655172414,
-      "width": 99.99510188087774
+      "number": 86.203125,
+      "height": 86.203125,
+      "width": 99.984375,
+      "parent": "shape_2127"
     },
     {
       "type": "domainStory:workObjectDocument",
       "name": "OS",
       "id": "shape_3074",
-      "x": 664,
-      "y": 1315
+      "x": -411,
+      "y": 1832
     },
     {
       "type": "domainStory:workObjectDocument",
@@ -1507,11 +1535,22 @@
       "y": 1065
     },
     {
+      "type": "domainStory:group",
+      "name": "INCLUSÃO DOS SERVIÇOS NA OS + POSSIBILIDADE DE INCLUIR PEÇAS E INSUMOS NECESSÁRIOS",
+      "id": "shape_3160",
+      "pickedColor": "#000000",
+      "x": -865,
+      "y": 818,
+      "height": 599,
+      "width": 1183
+    },
+    {
       "type": "domainStory:workObjectDocument",
       "name": "SERVIÇO",
       "id": "shape_3459",
-      "x": 543,
-      "y": 749
+      "x": -256,
+      "y": 1040,
+      "parent": "shape_5110"
     },
     {
       "type": "domainStory:actorSystem",
@@ -1525,42 +1564,55 @@
       "name": "VEICULO",
       "id": "shape_3813",
       "x": 435,
-      "y": 416
+      "y": 416,
+      "parent": "shape_5110"
     },
     {
       "type": "domainStory:actorPerson",
       "name": "MECANICO",
       "id": "shape_4080",
-      "x": 1501,
-      "y": 297
+      "x": 1656,
+      "y": 987,
+      "parent": "shape_2127"
     },
     {
       "type": "domainStory:workObjectDocument",
       "name": "ORÇAMENTO",
       "id": "shape_4115",
-      "x": 1357,
-      "y": 987
+      "x": 1512,
+      "y": 1677
     },
     {
       "type": "domainStory:workObjectDocument",
       "name": "PEÇA",
       "id": "shape_4182",
-      "x": 459,
-      "y": 875
+      "x": -340,
+      "y": 1166,
+      "parent": "shape_3160"
     },
     {
       "type": "domainStory:actorPerson",
       "name": "CLIENTE",
       "id": "shape_4696",
-      "x": 1366,
-      "y": 1203
+      "x": 1521,
+      "y": 1893
+    },
+    {
+      "type": "domainStory:group",
+      "name": "IDENTIFICAÇÃO DO CLIENTE + CADASTRO DO VEÍCULO",
+      "id": "shape_5110",
+      "pickedColor": "#000000",
+      "x": -221,
+      "y": 60,
+      "height": 569,
+      "width": 1188
     },
     {
       "type": "domainStory:workObjectDocument",
       "name": "OS",
       "id": "shape_5178",
-      "x": 1091,
-      "y": 459
+      "x": 1246,
+      "y": 1149
     },
     {
       "type": "domainStory:workObjectDocument",
@@ -1574,14 +1626,15 @@
       "name": "OS",
       "id": "shape_5386",
       "x": 532,
-      "y": 331
+      "y": 331,
+      "parent": "shape_5110"
     },
     {
       "type": "domainStory:textAnnotation",
       "name": "",
       "id": "shape_5463",
-      "x": 1125,
-      "y": 1425,
+      "x": 50,
+      "y": 1942,
       "text": "STATUS DE ENTREGUE QUANDO CLIENTE BUSCAR O CARRO",
       "number": 100.31347962382445,
       "height": 100.31347962382445,
@@ -1591,8 +1644,8 @@
       "type": "domainStory:workObjectDocument",
       "name": "OS",
       "id": "shape_5564",
-      "x": 580,
-      "y": 1546
+      "x": -495,
+      "y": 2063
     },
     {
       "type": "domainStory:actorSystem",
@@ -1605,33 +1658,45 @@
       "type": "domainStory:actorPerson",
       "name": "MECANICO",
       "id": "shape_5686",
-      "x": 194,
-      "y": 1546
+      "x": -881,
+      "y": 2063
     },
     {
       "type": "domainStory:workObjectDocument",
       "name": "OS",
       "id": "shape_5835",
-      "x": 831,
-      "y": 749
+      "x": 32,
+      "y": 1040,
+      "parent": "shape_3160"
     },
     {
       "type": "domainStory:textAnnotation",
       "name": "",
       "id": "shape_5948",
-      "x": 775,
-      "y": 1176,
+      "x": -300,
+      "y": 1693,
       "text": "STATUS DA OS FINALIZADA",
       "number": 56.426332288401255,
       "height": 56.426332288401255,
       "width": 99.99510188087774
     },
     {
+      "type": "domainStory:group",
+      "name": "CONTROLE DE SERVIÇO E OS",
+      "id": "shape_6570",
+      "pickedColor": "#000000",
+      "x": -1127,
+      "y": 1666,
+      "height": 850,
+      "width": 1692
+    },
+    {
       "type": "domainStory:actorSystem",
       "name": "SISTEMA",
       "id": "shape_7108",
       "x": 872,
-      "y": 343
+      "y": 343,
+      "parent": "shape_5110"
     },
     {
       "type": "domainStory:actorPerson",
@@ -1651,8 +1716,8 @@
       "type": "domainStory:textAnnotation",
       "name": "",
       "id": "shape_7578",
-      "x": 1185,
-      "y": 613,
+      "x": 1340,
+      "y": 1303,
       "text": "GERADO AUTOMATICAMENTE",
       "number": 57,
       "height": 57,
@@ -1667,28 +1732,30 @@
       "text": "STATUS DE OS RECEBIDA",
       "number": 42.31974921630094,
       "height": 42.31974921630094,
-      "width": 99.99510188087774
+      "width": 99.99510188087774,
+      "parent": "shape_5110"
     },
     {
       "type": "domainStory:workObjectDocument",
       "name": "VEICULO",
       "id": "shape_8122",
       "x": 382,
-      "y": 534
+      "y": 534,
+      "parent": "shape_5110"
     },
     {
       "type": "domainStory:actorSystem",
       "name": "SISTEMA",
       "id": "shape_8391",
-      "x": 1357,
-      "y": 749
+      "x": 1512,
+      "y": 1439
     },
     {
       "type": "domainStory:workObjectDocument",
       "name": "VEICULO",
       "id": "shape_8740",
-      "x": 980,
-      "y": 1830
+      "x": -95,
+      "y": 2347
     },
     {
       "type": "domainStory:workObjectDocument",
@@ -1702,42 +1769,45 @@
       "name": "ATENDENTE",
       "id": "shape_9085",
       "x": 155,
-      "y": 331
+      "y": 331,
+      "parent": "shape_5110"
     },
     {
       "type": "domainStory:workObjectDocument",
       "name": "SERVIÇO",
       "id": "shape_9233",
-      "x": 459,
-      "y": 1830
+      "x": -616,
+      "y": 2347
     },
     {
       "type": "domainStory:actorPerson",
       "name": "MECANICO",
       "id": "shape_9289",
-      "x": 156,
-      "y": 749
+      "x": -643,
+      "y": 1040,
+      "parent": "shape_5110"
     },
     {
       "type": "domainStory:workObjectDocument",
       "name": "ORÇAMENTO",
       "id": "shape_9315",
-      "x": 1696,
-      "y": 1203
+      "x": 1851,
+      "y": 1893
     },
     {
       "type": "domainStory:actorSystem",
       "name": "SISTEMA",
       "id": "shape_9716",
-      "x": 1006,
-      "y": 1547
+      "x": -69,
+      "y": 2064
     },
     {
       "type": "domainStory:workObjectDocument",
       "name": "CLIENTE",
       "id": "shape_9727",
       "x": 505,
-      "y": 212
+      "y": 212,
+      "parent": "shape_5110"
     },
     {
       "info": ""
