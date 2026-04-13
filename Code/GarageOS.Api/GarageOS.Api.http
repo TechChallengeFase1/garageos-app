@@ -1,0 +1,6 @@
+@GarageOS.Api_HostAddress = http://localhost:5129
+
+GET {{GarageOS.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
