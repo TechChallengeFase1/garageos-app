@@ -2,10 +2,12 @@ using GarageOS.Application.DTOs.Servicos;
 using GarageOS.Application.UseCases.Servicos;
 using GarageOS.Application.Validators.Servicos;
 using GarageOS.Domain.Exceptions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GarageOS.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class ServicosController : ControllerBase
