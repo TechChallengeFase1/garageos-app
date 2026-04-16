@@ -1,5 +1,7 @@
 using System.Text;
 using GarageOS.Application.UseCases.Servicos;
+using GarageOS.Application.UseCases.Veiculos;
+using GarageOS.Application.Validators.Veiculos;
 using GarageOS.Domain.Repositories;
 using GarageOS.Infrastructure.Data;
 using GarageOS.Infrastructure.Repositories;
@@ -22,6 +24,7 @@ public static class ServiceCollectionExtensions
             options.UseNpgsql(connectionString));
 
         services.AddScoped<IServicoRepository, ServicoRepository>();
+        services.AddScoped<IVeiculoRepository, VeiculoRepository>();
 
         return services;
     }
@@ -34,6 +37,13 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ObterServicoUseCase>();
         services.AddScoped<AlterarServicoUseCase>();
 
+        services.AddScoped<ListarVeiculosUseCase>();
+        services.AddScoped<ObterVeiculoUseCase>();
+        services.AddScoped<CadastrarVeiculoUseCase>();
+        services.AddScoped<AlterarVeiculoUseCase>();
+        services.AddScoped<CriarVeiculoValidator>();
+        
+
         return services;
     }
 
@@ -42,26 +52,26 @@ public static class ServiceCollectionExtensions
         IConfiguration configuration)
     {
         var secretKey = configuration["Jwt:SecretKey"]!;
-        var issuer    = configuration["Jwt:Issuer"]!;
-        var audience  = configuration["Jwt:Audience"]!;
+        var issuer = configuration["Jwt:Issuer"]!;
+        var audience = configuration["Jwt:Audience"]!;
 
         services
             .AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme    = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             })
             .AddJwtBearer(options =>
             {
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateIssuer           = true,
-                    ValidateAudience         = true,
-                    ValidateLifetime         = true,
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    ValidIssuer              = issuer,
-                    ValidAudience            = audience,
-                    IssuerSigningKey         = new SymmetricSecurityKey(
+                    ValidIssuer = issuer,
+                    ValidAudience = audience,
+                    IssuerSigningKey = new SymmetricSecurityKey(
                                                   Encoding.UTF8.GetBytes(secretKey))
                 };
             });
@@ -80,16 +90,16 @@ public static class ServiceCollectionExtensions
 
             var securityScheme = new OpenApiSecurityScheme
             {
-                Name         = "Authorization",
-                Description  = "Informe o token JWT: Bearer {token}",
-                In           = ParameterLocation.Header,
-                Type         = SecuritySchemeType.Http,
-                Scheme       = "bearer",
+                Name = "Authorization",
+                Description = "Informe o token JWT: Bearer {token}",
+                In = ParameterLocation.Header,
+                Type = SecuritySchemeType.Http,
+                Scheme = "bearer",
                 BearerFormat = "JWT",
-                Reference    = new OpenApiReference
+                Reference = new OpenApiReference
                 {
                     Type = ReferenceType.SecurityScheme,
-                    Id   = JwtBearerDefaults.AuthenticationScheme
+                    Id = JwtBearerDefaults.AuthenticationScheme
                 }
             };
 
