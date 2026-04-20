@@ -102,6 +102,8 @@ namespace GarageOS.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Veiculos");
+                });
+
             modelBuilder.Entity("GarageOS.Domain.Entities.Cliente", b =>
                 {
                     b.OwnsOne("GarageOS.Domain.ValueObjects.Documento", "Documento", b1 =>
