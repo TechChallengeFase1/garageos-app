@@ -3,6 +3,7 @@ using System;
 using GarageOS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GarageOS.Infrastructure.Migrations
 {
     [DbContext(typeof(GarageOSDbContext))]
-    partial class GarageOSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260420024824_AddTableClientes")]
+    partial class AddTableClientes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -75,33 +78,6 @@ namespace GarageOS.Infrastructure.Migrations
                     b.ToTable("Servicos", (string)null);
                 });
 
-            modelBuilder.Entity("GarageOS.Domain.Entities.Veiculo", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("AnoVeiculo")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("MarcaVeiculo")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("ModeloVeiculo")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("PlacaVeiculo")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<decimal>("PrecoVeiculo")
-                        .HasColumnType("numeric");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Veiculos");
             modelBuilder.Entity("GarageOS.Domain.Entities.Cliente", b =>
                 {
                     b.OwnsOne("GarageOS.Domain.ValueObjects.Documento", "Documento", b1 =>

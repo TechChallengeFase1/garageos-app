@@ -1,4 +1,5 @@
-using System.Text;
+using GarageOS.Api.Middlewares;
+using GarageOS.Application.UseCases.Clientes;
 using GarageOS.Application.UseCases.Servicos;
 using GarageOS.Application.UseCases.Veiculos;
 using GarageOS.Application.Validators.Veiculos;
@@ -9,6 +10,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Text;
 
 namespace GarageOS.Api.Extensions;
 
@@ -25,6 +27,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IServicoRepository, ServicoRepository>();
         services.AddScoped<IVeiculoRepository, VeiculoRepository>();
+        services.AddScoped<IClienteRepository, ClienteRepository>();
 
         return services;
     }
@@ -43,8 +46,21 @@ public static class ServiceCollectionExtensions
         services.AddScoped<AlterarVeiculoUseCase>();
         services.AddScoped<CriarVeiculoValidator>();
         
+        services.AddScoped<ListarClientesUseCase>();
+        services.AddScoped<CadastrarClienteUseCase>();
+        services.AddScoped<ObterClienteUseCase>();
+        services.AddScoped<AlterarClienteUseCase>();
+        services.AddScoped<DeletarClienteUseCase>();
 
         return services;
+    }
+
+    public static IApplicationBuilder UseGarageOSMiddlewares(
+        this IApplicationBuilder app)
+    {
+        app.UseMiddleware<ExceptionMiddleware>();
+
+        return app;
     }
 
     public static IServiceCollection AddJwtAuthentication(
