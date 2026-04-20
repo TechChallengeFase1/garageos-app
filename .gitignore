@@ -60,3 +60,9 @@ nunit-*.xml
 *.suo
 bin/
 obj/
+
+# .claude configuration (keep in version control)
+!.claude/
+!.claude/**
+!Code/.claude/
+!Code/.claude/**
