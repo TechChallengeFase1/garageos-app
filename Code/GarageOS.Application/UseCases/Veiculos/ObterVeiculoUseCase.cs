@@ -16,7 +16,7 @@ public class ObterVeiculoUseCase
     public async Task<VeiculoResponse> ExecutarAsync(Guid id)
     {
         var veiculo = await _repository.ObterPorIdAsync(id)
-            ?? throw new ServicoNaoEncontradoException(id);
+            ?? throw new VeiculoNaoEncontradoException(id);
 
         return new VeiculoResponse
         {

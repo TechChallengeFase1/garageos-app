@@ -1,8 +1,13 @@
 using GarageOS.Infrastructure.Data;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using System.Security.Claims;
+using System.Text.Encodings.Web;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 
 namespace GarageOS.IntegrationTests.Fixtures;
 
@@ -12,8 +17,7 @@ public class ApiFactory : WebApplicationFactory<Program>
     {
         builder.ConfigureServices(services =>
         {
-            // Remove TODOS os descritores relacionados ao GarageOSDbContext e seus providers
-            // (DbContextOptions, IDbContextOptionsConfiguration, etc.)
+            // 🔥 REMOVE DB REAL
             var toRemove = services
                 .Where(d =>
                     d.ServiceType == typeof(DbContextOptions<GarageOSDbContext>) ||
@@ -27,12 +31,19 @@ public class ApiFactory : WebApplicationFactory<Program>
             foreach (var descriptor in toRemove)
                 services.Remove(descriptor);
 
-            // Nome fixo por factory — todos os requests do mesmo teste compartilham o mesmo DB
+            // 🔥 IN MEMORY DB
             var dbName = "GarageOS_Tests_" + Guid.NewGuid();
             services.AddDbContext<GarageOSDbContext>(options =>
                 options.UseInMemoryDatabase(dbName));
-        });
 
-        base.ConfigureWebHost(builder);
+            // 🔐 MOCK AUTH
+            services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = "Test";
+    options.DefaultChallengeScheme = "Test";
+})
+.AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
+    "Test", options => { });
+        });
     }
 }

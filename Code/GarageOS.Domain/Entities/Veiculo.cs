@@ -1,7 +1,15 @@
+using System.Text.RegularExpressions;
+
 namespace GarageOS.Domain.Entities;
+
 
 public class Veiculo
 {
+    private static readonly Regex PlacaRegex = new(
+        @"^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$",
+        RegexOptions.Compiled
+    );
+
     public Guid Id { get; set; }
     public string MarcaVeiculo { get; set; } = string.Empty;
     public string ModeloVeiculo { get; set; } = string.Empty;
@@ -19,8 +27,8 @@ public class Veiculo
         if (string.IsNullOrWhiteSpace(modeloVeiculo))
             throw new ArgumentException("O modelo do veiculo não pode ser vazio.", nameof(modeloVeiculo));
 
-        if (string.IsNullOrWhiteSpace(placaVeiculo))
-            throw new ArgumentException("A placa do veiculo não pode ser vazia.", nameof(placaVeiculo));
+        if (!ValidarPlaca(placaVeiculo))
+            throw new ArgumentException("Placa do veículo inválida.");
 
         if (anoVeiculo <= 0)
             throw new ArgumentException("O ano do veiculo não pode ser vazio.", nameof(anoVeiculo));
@@ -31,7 +39,7 @@ public class Veiculo
         Id = Guid.NewGuid();
         MarcaVeiculo = marcaVeiculo;
         ModeloVeiculo = modeloVeiculo;
-        PlacaVeiculo = placaVeiculo;
+        PlacaVeiculo = placaVeiculo.ToUpper().Trim();
         AnoVeiculo = anoVeiculo;
         PrecoVeiculo = precoVeiculo;
     }
@@ -77,5 +85,15 @@ public class Veiculo
 
             PrecoVeiculo = precoVeiculo.Value;
         }
+    }
+
+    private static bool ValidarPlaca(string placa)
+    {
+        if (string.IsNullOrWhiteSpace(placa))
+            return false;
+
+        placa = placa.Replace("-", "").ToUpper().Trim();
+
+        return PlacaRegex.IsMatch(placa);
     }
 }

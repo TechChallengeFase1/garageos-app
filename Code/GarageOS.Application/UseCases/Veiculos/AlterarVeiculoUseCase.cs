@@ -19,12 +19,12 @@ public class AlterarVeiculoUseCase
             ?? throw new VeiculoNaoEncontradoException(id);
 
         veiculo.AtualizarParcial(
-    request.MarcaVeiculo,
-    request.ModeloVeiculo,
-    request.PlacaVeiculo,
-    request.AnoVeiculo,
-    request.PrecoVeiculo
-);
+            request.MarcaVeiculo,
+            request.ModeloVeiculo,
+            request.PlacaVeiculo,
+            request.AnoVeiculo,
+            request.PrecoVeiculo
+        );
 
         await _repository.AtualizarAsync(veiculo);
 
