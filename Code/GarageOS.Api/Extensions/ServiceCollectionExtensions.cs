@@ -45,6 +45,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<CadastrarVeiculoUseCase>();
         services.AddScoped<AlterarVeiculoUseCase>();
         services.AddScoped<CriarVeiculoValidator>();
+        services.AddScoped<VincularVeiculoClienteUseCase>();
+        services.AddScoped<DeletarVeiculoUseCase>();
         
         services.AddScoped<ListarClientesUseCase>();
         services.AddScoped<CadastrarClienteUseCase>();
