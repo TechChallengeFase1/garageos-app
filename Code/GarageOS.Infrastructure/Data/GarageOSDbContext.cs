@@ -9,6 +9,8 @@ public class GarageOSDbContext : DbContext
     public GarageOSDbContext(DbContextOptions<GarageOSDbContext> options) : base(options) { }
 
     public DbSet<Servico> Servicos { get; set; }
+    public DbSet<Cliente> Clientes { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
