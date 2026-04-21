@@ -36,6 +36,11 @@ public class ExceptionMiddleware
             _logger.LogWarning(ex, "Não encontrado: {Message}", ex.Message);
             await EscreverRespostaAsync(context, HttpStatusCode.NotFound, ex.Message);
         }
+        catch (EstoqueNaoEncontradoException ex)
+        {
+            _logger.LogWarning(ex, "Não encontrado: {Message}", ex.Message);
+            await EscreverRespostaAsync(context, HttpStatusCode.NotFound, ex.Message);
+        }
         catch (ClienteJaCadastradoException ex)
         {
             _logger.LogWarning(ex, "Conflito: {Message}", ex.Message);

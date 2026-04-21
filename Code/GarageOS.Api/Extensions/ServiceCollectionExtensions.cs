@@ -1,5 +1,6 @@
 using GarageOS.Api.Middlewares;
 using GarageOS.Application.UseCases.Clientes;
+using GarageOS.Application.UseCases.Estoques;
 using GarageOS.Application.UseCases.Servicos;
 using GarageOS.Application.UseCases.Veiculos;
 using GarageOS.Application.Validators.Veiculos;
@@ -28,6 +29,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IServicoRepository, ServicoRepository>();
         services.AddScoped<IVeiculoRepository, VeiculoRepository>();
         services.AddScoped<IClienteRepository, ClienteRepository>();
+        services.AddScoped<IEstoqueRepository, EstoqueRepository>();
 
         return services;
     }
@@ -51,6 +53,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ObterClienteUseCase>();
         services.AddScoped<AlterarClienteUseCase>();
         services.AddScoped<DeletarClienteUseCase>();
+
+        services.AddScoped<ListarEstoquesUseCase>();
+        services.AddScoped<CadastrarEstoqueUseCase>();
+        services.AddScoped<ObterEstoqueUseCase>();
+        services.AddScoped<AlterarEstoqueUseCase>();
 
         return services;
     }
