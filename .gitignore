@@ -28,6 +28,9 @@ project.lock.json
 project.fragment.lock.json
 artifacts/
 
+# SonarQube
+.sonarqube/
+
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
 
@@ -66,3 +69,7 @@ obj/
 !.claude/**
 !Code/.claude/
 !Code/.claude/**
+.env
+.env.*
+!.env.example
+appsettings.Development.json
