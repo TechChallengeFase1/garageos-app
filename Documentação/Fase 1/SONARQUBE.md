@@ -2,6 +2,20 @@
 
 Passo a passo completo para um novo desenvolvedor:
 
+## 0. Instalar o SonarScanner (uma única vez)
+
+Execute este comando para instalar o `dotnet-sonarscanner` como ferramenta global:
+
+```bash
+dotnet tool install --global dotnet-sonarscanner
+```
+
+Se já tiver instalado e quiser atualizar:
+
+```bash
+dotnet tool update --global dotnet-sonarscanner
+```
+
 ## 1. Acessar o SonarQube
 
 - Abrir http://localhost:9000
