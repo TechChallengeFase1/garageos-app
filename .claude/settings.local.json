@@ -2,7 +2,22 @@
   "permissions": {
     "allow": [
       "Bash(dotnet build *)",
-      "Bash(dotnet ef *)"
+      "Bash(dotnet ef *)",
+      "Bash(docker volume rm *)",
+      "Bash(docker stop *)",
+      "Bash(docker rm *)",
+      "Bash(docker run *)",
+      "Bash(dotnet tool *)",
+      "Bash(dotnet sonarscanner *)",
+      "Bash(curl -s -u \"sqp_96e8ca9250d6efa4b73ecf6d6e22916b00967631:\" \"http://localhost:9000/api/projects/search\")",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s \"http://localhost:9000/api/projects/search\")",
+      "Bash(curl -s -u \"admin:admin\" \"http://localhost:9000/api/projects/search\")",
+      "Bash(curl -s -u \"admin:sonar\" \"http://localhost:9000/api/projects/search\")",
+      "Bash(curl -s -u \"admin:admin\" \"http://localhost:9000/api/authentication/validate\")",
+      "Bash(curl -s \"http://localhost:9000/api/server/version\")",
+      "Bash(curl *)",
+      "Bash(dotnet test *)"
     ]
   }
 }
