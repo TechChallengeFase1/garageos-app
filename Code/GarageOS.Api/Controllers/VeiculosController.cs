@@ -15,17 +15,19 @@ public class VeiculosController : ControllerBase
     private readonly CriarVeiculoValidator _validator;
     private readonly ListarVeiculosUseCase _listarVeiculosUseCase;
     private readonly ObterVeiculoUseCase _obterVeiculoUseCase;
-    private readonly CadastrarVeiculoUseCase _cadastrarVeiculoUseCase; 
+    private readonly CadastrarVeiculoUseCase _cadastrarVeiculoUseCase;
     private readonly AlterarVeiculoUseCase _alterarVeiculoUseCase;
-    //private readonly VincularVeiculoClienteUseCase _vincularVeiculoClienteUseCase;
+    private readonly VincularVeiculoClienteUseCase _vincularVeiculoClienteUseCase;
+    private readonly DeletarVeiculoUseCase _deletarVeiculoUseCase;
 
     public VeiculosController(
         CriarVeiculoValidator validator,
         ListarVeiculosUseCase listarVeiculosUseCase,
         ObterVeiculoUseCase obterVeiculoUseCase,
         CadastrarVeiculoUseCase cadastrarVeiculoUseCase,
-        AlterarVeiculoUseCase alterarVeiculoUseCase
-        //VincularVeiculoClienteUseCase vincularVeiculoClienteUseCase
+        AlterarVeiculoUseCase alterarVeiculoUseCase,
+        VincularVeiculoClienteUseCase vincularVeiculoClienteUseCase,
+        DeletarVeiculoUseCase deletarVeiculoUseCase
         )
     {
         _validator = validator;
@@ -33,7 +35,8 @@ public class VeiculosController : ControllerBase
         _obterVeiculoUseCase = obterVeiculoUseCase;
         _cadastrarVeiculoUseCase = cadastrarVeiculoUseCase;
         _alterarVeiculoUseCase = alterarVeiculoUseCase;
-        //_vincularVeiculoClienteUseCase = vincularVeiculoClienteUseCase;
+        _vincularVeiculoClienteUseCase = vincularVeiculoClienteUseCase;
+        _deletarVeiculoUseCase = deletarVeiculoUseCase;
     }
 
     /// <summary>Lista todos os veículos </summary>
@@ -71,8 +74,8 @@ public class VeiculosController : ControllerBase
         var validator = new CriarVeiculoValidator();
         var validation = await validator.ValidateAsync(request);
 
-         if (!validation.IsValid)
-             return BadRequest(validation.Errors.Select(e => e.ErrorMessage));
+        if (!validation.IsValid)
+            return BadRequest(validation.Errors.Select(e => e.ErrorMessage));
 
         var resultado = await _cadastrarVeiculoUseCase.ExecutarAsyncCadastrarVeiculo(request);
         return CreatedAtAction(nameof(Obter), new { id = resultado.Id }, resultado);
@@ -96,20 +99,31 @@ public class VeiculosController : ControllerBase
         }
     }
 
-    /// <summary>Vincula o veículo a um cliente.</summary>
-    // [HttpPatch("{id:guid}/vincular-cliente")]
-    // [ProducesResponseType(StatusCodes.Status204NoContent)]
-    // [ProducesResponseType(StatusCodes.Status404NotFound)]
-    // public async Task<IActionResult> VincularAoCliente(Guid id, [FromBody] VincularClienteRequest request)
-    // {
-    //     try
-    //     {
-    //         await _vincularVeiculoClienteUseCase.ExecutarAsync(id, request.ClienteId);
-    //         return NoContent();
-    //     }
-    //     catch (VeiculoNaoEncontradoException ex)
-    //     {
-    //         return NotFound(new { mensagem = ex.Message });
-    //     }
-    // }
+    // <summary>Vincula o veículo a um cliente.</summary>
+    [HttpPatch("{id:guid}/vincular-cliente")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> VincularAoCliente(Guid id, [FromBody] VincularClienteRequest request)
+    {
+        try
+        {
+            await _vincularVeiculoClienteUseCase.ExecutarAsync(id, request.ClienteId);
+            return NoContent();
+        }
+        catch (VeiculoNaoEncontradoException ex)
+        {
+            return NotFound(new { mensagem = ex.Message });
+        }
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Deletar(Guid id)
+    {
+        var sucesso = await _deletarVeiculoUseCase.ExecutarAsync(id);
+
+        if (!sucesso)
+            return NotFound();
+
+        return NoContent();
+    }
 }

@@ -3,6 +3,7 @@ using System;
 using GarageOS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GarageOS.Infrastructure.Migrations
 {
     [DbContext(typeof(GarageOSDbContext))]
-    partial class GarageOSDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260420224206_AddClienteIdToVeiculo")]
+    partial class AddClienteIdToVeiculo
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -55,42 +58,6 @@ namespace GarageOS.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Clientes", (string)null);
-                });
-
-            modelBuilder.Entity("GarageOS.Domain.Entities.Estoque", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("DataEntrada")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("DataSaida")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Fornecedor")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<string>("Nome")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<int>("Quantidade")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Status")
-                        .HasMaxLength(20)
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("Valor")
-                        .HasColumnType("numeric(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Estoques", (string)null);
                 });
 
             modelBuilder.Entity("GarageOS.Domain.Entities.Servico", b =>

@@ -17,6 +17,9 @@ public class Veiculo
     public int AnoVeiculo { get; set; }
     public decimal PrecoVeiculo { get; set; }
 
+    public Guid? ClienteId { get; private set; }
+    public Cliente? Cliente { get; private set; }
+
     protected Veiculo() { }
 
     public Veiculo(string marcaVeiculo, string modeloVeiculo, string placaVeiculo, int anoVeiculo, decimal precoVeiculo)
@@ -95,5 +98,13 @@ public class Veiculo
         placa = placa.Replace("-", "").ToUpper().Trim();
 
         return PlacaRegex.IsMatch(placa);
+    }
+
+   public void VincularCliente(Guid clienteId)
+    {
+        if (clienteId == Guid.Empty)
+            throw new ArgumentException("ClienteId inválido");
+
+        ClienteId = clienteId;
     }
 }

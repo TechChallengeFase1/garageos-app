@@ -8,4 +8,5 @@ public interface IVeiculoRepository
     Task<Veiculo?> ObterPorIdAsync(Guid id);
     Task AdicionarAsync(Veiculo servico);
     Task AtualizarAsync(Veiculo servico);
+    Task RemoverAsync(Guid id);
 }

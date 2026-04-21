@@ -37,4 +37,15 @@ public class VeiculoRepository : IVeiculoRepository
         _context.Veiculos.Update(veiculo);
         await _context.SaveChangesAsync();
     }
+
+    public async Task RemoverAsync(Guid id)
+    {
+        var veiculo = await _context.Veiculos.FindAsync(id);
+
+        if (veiculo == null)
+            return;
+
+        _context.Veiculos.Remove(veiculo);
+        await _context.SaveChangesAsync();
+    }
 }

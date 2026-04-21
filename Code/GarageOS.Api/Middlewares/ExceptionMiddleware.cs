@@ -46,6 +46,11 @@ public class ExceptionMiddleware
             _logger.LogWarning(ex, "Conflito: {Message}", ex.Message);
             await EscreverRespostaAsync(context, HttpStatusCode.Conflict, ex.Message);
         }
+        catch (VeiculoNaoEncontradoException ex)
+        {
+            _logger.LogWarning(ex, "Não encontrado: {Message}", ex.Message);
+            await EscreverRespostaAsync(context, HttpStatusCode.NotFound, ex.Message);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erro inesperado: {Message}", ex.Message);
