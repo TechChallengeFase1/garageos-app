@@ -37,4 +37,10 @@ public class EstoqueRepository : IEstoqueRepository
         _context.Estoques.Update(estoque);
         await _context.SaveChangesAsync();
     }
+
+    public async Task RemoverAsync(Estoque estoque)
+    {
+        _context.Estoques.Remove(estoque);
+        await _context.SaveChangesAsync();
+    }
 }

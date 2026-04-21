@@ -16,17 +16,20 @@ public class EstoquesController : ControllerBase
     private readonly CadastrarEstoqueUseCase _cadastrarEstoqueUseCase;
     private readonly ObterEstoqueUseCase _obterEstoqueUseCase;
     private readonly AlterarEstoqueUseCase _alterarEstoqueUseCase;
+    private readonly DeletarEstoqueUseCase _deletarEstoqueUseCase;
 
     public EstoquesController(
         ListarEstoquesUseCase listarEstoquesUseCase,
         CadastrarEstoqueUseCase cadastrarEstoqueUseCase,
         ObterEstoqueUseCase obterEstoqueUseCase,
-        AlterarEstoqueUseCase alterarEstoqueUseCase)
+        AlterarEstoqueUseCase alterarEstoqueUseCase,
+        DeletarEstoqueUseCase deletarEstoqueUseCase)
     {
         _listarEstoquesUseCase = listarEstoquesUseCase;
         _cadastrarEstoqueUseCase = cadastrarEstoqueUseCase;
         _obterEstoqueUseCase = obterEstoqueUseCase;
         _alterarEstoqueUseCase = alterarEstoqueUseCase;
+        _deletarEstoqueUseCase = deletarEstoqueUseCase;
     }
 
     /// <summary>Lista todos os itens do estoque.</summary>
@@ -64,6 +67,23 @@ public class EstoquesController : ControllerBase
         {
             var resultado = await _obterEstoqueUseCase.ExecutarAsync(id);
             return Ok(resultado);
+        }
+        catch (EstoqueNaoEncontradoException ex)
+        {
+            return NotFound(new { mensagem = ex.Message });
+        }
+    }
+
+    /// <summary>Remove um item do estoque.</summary>
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Deletar(Guid id)
+    {
+        try
+        {
+            await _deletarEstoqueUseCase.ExecutarAsync(id);
+            return NoContent();
         }
         catch (EstoqueNaoEncontradoException ex)
         {

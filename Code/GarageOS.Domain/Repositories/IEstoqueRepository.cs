@@ -8,4 +8,5 @@ public interface IEstoqueRepository
     Task<Estoque?> ObterPorIdAsync(Guid id);
     Task AdicionarAsync(Estoque estoque);
     Task AtualizarAsync(Estoque estoque);
+    Task RemoverAsync(Estoque estoque);
 }

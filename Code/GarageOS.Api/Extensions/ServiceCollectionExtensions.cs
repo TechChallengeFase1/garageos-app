@@ -58,6 +58,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<CadastrarEstoqueUseCase>();
         services.AddScoped<ObterEstoqueUseCase>();
         services.AddScoped<AlterarEstoqueUseCase>();
+        services.AddScoped<DeletarEstoqueUseCase>();
 
         return services;
     }
