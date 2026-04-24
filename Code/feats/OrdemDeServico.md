@@ -22,6 +22,10 @@ A Ordem de Serviço representa o ciclo de vida completo de um atendimento na ofi
 
 ---
 
+> **Convenção de datas:** todas as datas atribuídas nesta feature devem usar **GMT-3 (horário de Brasília)**. O projeto já possui o helper estático `BrasiliaTime.Agora` em `GarageOS.Domain/Utils/BrasiliaTime.cs`, que encapsula a conversão para `America/Sao_Paulo`. Usar sempre `BrasiliaTime.Agora` no lugar de `DateTime.UtcNow`. Nunca usar `DateTime.UtcNow` diretamente para campos de negócio.
+
+---
+
 ## 1. Validação da Demanda
 
 ### 1.1 Entidades envolvidas
@@ -81,8 +85,8 @@ Rejeitado
 
 **`StatusExecucaoServico`** (na tabela intermediária OrdemDeServicoServico)
 ```
-Iniciado    → seta IniciadaEm = DateTime.UtcNow
-Finalizado  → seta FinalizadaEm = DateTime.UtcNow
+Iniciado    → seta IniciadaEm = DateTime.Now (GMT-3, horário de Brasília)
+Finalizado  → seta FinalizadaEm = DateTime.Now (GMT-3, horário de Brasília)
 ```
 
 ---
@@ -91,12 +95,15 @@ Finalizado  → seta FinalizadaEm = DateTime.UtcNow
 
 | Regra | Onde implementar |
 |---|---|
-| `NumeroOS` gerado automaticamente (alfanumérico) | Construtor de `OrdemDeServico` |
+| `NumeroOS` gerado no formato `OS-{ANO}-{SEQUENCIAL:D5}` | Use case `CriarOrdemDeServico` (busca último sequencial no banco) |
 | Status inicia sempre em `Recebida` | Construtor de `OrdemDeServico` |
 | Ao adicionar serviços ou estoque → status vai para `EmDiagnostico` | Método `AdicionarServico` / `AdicionarEstoque` na entidade |
 | `Orcamento.Preco` calculado automaticamente com soma dos `Servico.Preco` | Use case `GerarOrcamento` |
+| Gerar orçamento sempre sobrescreve o orçamento anterior | Use case `GerarOrcamento` |
 | Ao gerar orçamento → status da OS vai para `AguardandoAprovacao` | Use case `GerarOrcamento` |
 | Ao aprovar orçamento → status da OS vai para `EmExecucao` | Use case `AprovarOrcamento` |
+| Ao aprovar orçamento → decrementar `Quantidade` de cada item de `Estoque` vinculado à OS | Use case `AprovarOrcamento` |
+| Ao rejeitar orçamento → status da OS vai para `Finalizada` automaticamente | Use case `RejeitarOrcamento` |
 | `Finalizada` e `Entregue` → apenas via endpoint específico de alteração de status | Use case `AlterarStatusOrdemDeServico` |
 | Ao iniciar serviço → seta `IniciadaEm` | Método `IniciarExecucao` em `OrdemDeServicoServico` |
 | Ao finalizar serviço → seta `FinalizadaEm` | Método `FinalizarExecucao` em `OrdemDeServicoServico` |
@@ -104,21 +111,19 @@ Finalizado  → seta FinalizadaEm = DateTime.UtcNow
 
 ---
 
-### 1.5 Pontos em aberto — requerem confirmação antes da implementação
+### 1.5 Decisões de negócio confirmadas
 
-> **Estes pontos precisam ser validados antes de prosseguir:**
+1. **Geração do NumeroOS**: formato confirmado `OS-{ANO}-{SEQUENCIAL:D5}` (ex: `OS-2026-00001`). O sequencial é obtido buscando o último número registrado no banco para o ano corrente, garantindo unicidade e ordem cronológica.
 
-1. **Geração do NumeroOS**: qual o formato? Sugestão: `OS-{ANO}-{SEQUENCIAL:D5}` (ex: `OS-2026-00001`). Isso exige buscar o último número no banco. Confirmar formato e se pode ser simples (GUID parcial) ou sequencial.
+2. **Rejeição do orçamento**: ao rejeitar o orçamento, o status da OS vai automaticamente para `Finalizada`. Não é possível reabrir ou gerar novo orçamento após rejeição.
 
-2. **Rejeição do orçamento**: se o orçamento for rejeitado, o status da OS volta para `EmDiagnostico`? Ou a OS fica bloqueada? Pode gerar um novo orçamento após rejeição?
+3. **Múltiplos orçamentos**: a OS possui sempre um único orçamento. Caso seja necessário gerar novamente, o orçamento anterior é sobrescrito. Não há histórico de versões.
 
-3. **Múltiplos orçamentos**: a OS pode ter mais de um orçamento (histórico de versões) ou sempre sobrescreve?
+4. **Estoque na OS**: o vínculo das peças à OS é referencial. O decremento da `Quantidade` no estoque ocorre **apenas no momento da aprovação do orçamento**, com base nas peças listadas na OS.
 
-4. **Estoque na OS**: a relação com estoque é apenas referencial (registrar quais peças foram usadas) ou ao vincular uma peça à OS, a `Quantidade` do `Estoque` deve ser decrementada automaticamente?
+5. **Aprovação do cliente — SMTP**: desconsiderado para esta entrega. O endpoint de aprovação será implementado sem envio de e-mail. SMTP fica como incremento futuro.
 
-5. **Aprovação do cliente (#14)**: a issue menciona possível envio de e-mail via SMTP. Implementar o endpoint de aprovação primeiro (sem e-mail) e deixar SMTP como incremento futuro?
-
-6. **Tempo médio dos serviços (#19)**: o cálculo de tempo médio é feito no back-end e retornado em um endpoint específico. Confirmar: é `(FinalizadaEm - IniciadaEm)` por execução, com média sobre todas execuções do mesmo `ServicoId`?
+6. **Tempo médio dos serviços**: cálculo confirmado no back-end como média de `(FinalizadaEm - IniciadaEm)` sobre todas as execuções do mesmo `ServicoId` com status `Finalizado`.
 
 ---
 
@@ -182,8 +187,8 @@ Campos:
 - Servico? Servico       ← navigation property
 
 Métodos:
-- IniciarExecucao()   → Status = Iniciado, IniciadaEm = UtcNow
-- FinalizarExecucao() → Status = Finalizado, FinalizadaEm = UtcNow
+- IniciarExecucao()   → Status = Iniciado, IniciadaEm = DateTime.Now (GMT-3, horário de Brasília)
+- FinalizarExecucao() → Status = Finalizado, FinalizadaEm = DateTime.Now (GMT-3, horário de Brasília)
 ```
 
 **Nova Entidade: `OrdemDeServicoEstoque`** (tabela intermediária simples)
@@ -208,7 +213,7 @@ Task<OrdemDeServico?> ObterPorIdAsync(Guid id);
 Task<OrdemDeServico?> ObterPorNumeroOSAsync(string numeroOS);
 Task AdicionarAsync(OrdemDeServico ordemDeServico);
 Task AtualizarAsync(OrdemDeServico ordemDeServico);
-Task<int> ObterUltimoSequencialAsync(int ano); ← para gerar NumeroOS
+Task<int> ObterUltimoSequencialDoAnoAsync(int ano); // usado para gerar NumeroOS no formato OS-{ANO}-{SEQUENCIAL:D5}
 ```
 
 ---
@@ -224,13 +229,13 @@ Task<int> ObterUltimoSequencialAsync(int ano); ← para gerar NumeroOS
 - `AcompanhamentoOSResponse` → NumeroOS, Status, lista de serviços (campos reduzidos, público)
 
 **Use Cases** (`UseCases/OrdensDeServico/`)
-- `CriarOrdemDeServicoUseCase` → cria OS com status Recebida
+- `CriarOrdemDeServicoUseCase` → busca último sequencial do ano no banco, gera `NumeroOS`, cria OS com status `Recebida`
 - `ListarOrdensDeServicoUseCase`
 - `ObterOrdemDeServicoUseCase`
-- `AdicionarServicoNaOSUseCase` → adiciona serviço + muda status para EmDiagnostico
-- `AdicionarEstoqueNaOSUseCase` → adiciona peça + muda status para EmDiagnostico
-- `AlterarStatusOrdemDeServicoUseCase` → apenas Finalizada e Entregue
-- `AcompanharOrdemDeServicoUseCase` → busca por NumeroOS, sem autenticação
+- `AdicionarServicoNaOSUseCase` → adiciona serviço + muda status para `EmDiagnostico`
+- `AdicionarEstoqueNaOSUseCase` → adiciona peça + muda status para `EmDiagnostico`
+- `AlterarStatusOrdemDeServicoUseCase` → apenas `Finalizada` e `Entregue`
+- `AcompanharOrdemDeServicoUseCase` → busca por `NumeroOS`, sem autenticação
 
 **Validators** (`Validators/OrdensDeServico/`)
 - `CriarOrdemDeServicoValidator`
@@ -288,7 +293,7 @@ Métodos:
 **Nova Interface:** `IOrcamentoRepository`
 
 **Use Cases:**
-- `GerarOrcamentoUseCase` → soma `Servico.Preco` dos serviços da OS → cria `Orcamento` → avança OS para `AguardandoAprovacao`
+- `GerarOrcamentoUseCase` → soma `Servico.Preco` dos serviços da OS → cria ou sobrescreve o `Orcamento` existente → avança OS para `AguardandoAprovacao`
 
 **Endpoint:**
 ```
@@ -302,16 +307,16 @@ POST  /api/ordensdeservico/{id}/orcamento  → Gerar orçamento  [Authorize]
 ### ETAPA 3 — Aprovação do Cliente (Issue #14)
 
 **Use Cases:**
-- `AprovarOrcamentoUseCase` → `Orcamento.Aprovar()` → OS avança para `EmExecucao`
-- `RejeitarOrcamentoUseCase` → `Orcamento.Rejeitar()` → *(definir comportamento da OS com base na resposta do ponto em aberto #2)*
+- `AprovarOrcamentoUseCase` → `Orcamento.Aprovar()` → OS avança para `EmExecucao` → **decrementa `Quantidade` de cada item de `Estoque` vinculado à OS**
+- `RejeitarOrcamentoUseCase` → `Orcamento.Rejeitar()` → OS vai automaticamente para `Finalizada`
 
 **Endpoints:**
 ```
-PATCH  /api/ordensdeservico/{id}/orcamento/aprovar   [Authorize ou AllowAnonymous?]
-PATCH  /api/ordensdeservico/{id}/orcamento/rejeitar  [Authorize ou AllowAnonymous?]
+PATCH  /api/ordensdeservico/{id}/orcamento/aprovar   [Authorize]
+PATCH  /api/ordensdeservico/{id}/orcamento/rejeitar  [Authorize]
 ```
 
-> E-mail via SMTP: implementar como incremento posterior. Endpoints funcionam independentemente do e-mail.
+> SMTP desconsiderado nesta entrega. Funcionalidade de envio de e-mail será implementada como incremento futuro.
 
 ---
 
@@ -356,4 +361,4 @@ GET    /api/servicos/tempos-medios                            [Authorize]
 
 ---
 
-> **Próximo passo:** confirmar os 6 pontos em aberto da seção 1.5 antes de iniciar a implementação.
+> **Próximo passo:** plano validado e pronto para implementação. Iniciar pela Etapa 1.
