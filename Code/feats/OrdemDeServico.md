@@ -1,5 +1,27 @@
 # Plano de Implementação — Ordem de Serviço
 
+## 0. Objetivo
+
+O GarageOS é um sistema de gerenciamento de oficina mecânica. Até o momento, a base já possui cadastro de **Clientes**, **Veículos**, **Serviços** e **Estoque** (peças e insumos). O próximo passo é implementar o fluxo central do negócio: a **Ordem de Serviço (OS)**.
+
+A Ordem de Serviço representa o ciclo de vida completo de um atendimento na oficina — desde a entrada do veículo até a entrega ao cliente. Ela conecta todas as entidades existentes em um único fluxo operacional.
+
+### O que será implementado
+
+**CRUD da OS** — criação, consulta e gerenciamento do ciclo de vida de uma ordem de serviço, vinculando cliente, veículo, serviços e peças do estoque.
+
+**Fluxo de status** — a OS percorre estados bem definidos (`Recebida → Em diagnóstico → Aguardando aprovação → Em execução → Finalizada → Entregue`), onde cada transição é controlada por regras de negócio específicas.
+
+**Geração de orçamento** — ao incluir os serviços na OS, o sistema gera automaticamente um orçamento com o valor total calculado a partir dos preços dos serviços cadastrados.
+
+**Aprovação do cliente** — o cliente recebe o orçamento e pode aprovar ou rejeitar. A aprovação avança a OS para execução; a rejeição interrompe o fluxo.
+
+**Acompanhamento público** — um endpoint sem autenticação permite que o cliente consulte o status da sua OS pelo número único gerado no momento da abertura.
+
+**Monitoramento de execução** — cada serviço dentro da OS pode ter seu tempo de execução registrado individualmente (início e fim), permitindo calcular o tempo médio de execução por tipo de serviço ao longo do tempo.
+
+---
+
 ## 1. Validação da Demanda
 
 ### 1.1 Entidades envolvidas
