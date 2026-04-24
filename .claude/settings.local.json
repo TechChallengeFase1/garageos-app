@@ -17,7 +17,8 @@
       "Bash(curl -s -u \"admin:admin\" \"http://localhost:9000/api/authentication/validate\")",
       "Bash(curl -s \"http://localhost:9000/api/server/version\")",
       "Bash(curl *)",
-      "Bash(dotnet test *)"
+      "Bash(dotnet test *)",
+      "Bash(git push *)"
     ]
   }
 }
