@@ -44,7 +44,8 @@ public class AuthController : ControllerBase
 
         var key   = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var expiresAt = BrasiliaTime.Agora.AddMinutes(expires);
+        var expiresAtUtc = DateTime.UtcNow.AddMinutes(expires);
+        var expiresAtBrasilia = BrasiliaTime.Agora.AddMinutes(expires);
 
         var claims = new[]
         {
@@ -56,13 +57,13 @@ public class AuthController : ControllerBase
             issuer: issuer,
             audience: audience,
             claims: claims,
-            expires: expiresAt,
+            expires: expiresAtUtc,
             signingCredentials: creds);
 
         return new TokenResponse
         {
             Token     = new JwtSecurityTokenHandler().WriteToken(jwtToken),
-            ExpiresAt = expiresAt
+            ExpiresAt = expiresAtBrasilia
         };
     }
 }

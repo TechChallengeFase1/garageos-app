@@ -109,7 +109,8 @@ public static class ServiceCollectionExtensions
                     ValidIssuer = issuer,
                     ValidAudience = audience,
                     IssuerSigningKey = new SymmetricSecurityKey(
-                                                  Encoding.UTF8.GetBytes(secretKey))
+                                                  Encoding.UTF8.GetBytes(secretKey)),
+                    ClockSkew = TimeSpan.FromMinutes(5)
                 };
             });
 
