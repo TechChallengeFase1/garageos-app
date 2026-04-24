@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Text.Json;
 using GarageOS.Domain.Exceptions;
+using GarageOS.Domain.Utils;
 
 namespace GarageOS.Api.Middlewares;
 
@@ -71,7 +72,7 @@ public class ExceptionMiddleware
         {
             status = (int)statusCode,
             erro = mensagem,
-            timestamp = DateTime.UtcNow
+            timestamp = BrasiliaTime.Agora
         };
 
         var json = JsonSerializer.Serialize(resposta, new JsonSerializerOptions

@@ -1,4 +1,5 @@
-﻿using GarageOS.Domain.ValueObjects;
+﻿using GarageOS.Domain.Utils;
+using GarageOS.Domain.ValueObjects;
 
 namespace GarageOS.Domain.Entities
 {
@@ -25,8 +26,8 @@ namespace GarageOS.Domain.Entities
             Telefone = telefone;
             Endereco = endereco;
             Ativo = true;
-            CriadoEm = DateTime.UtcNow;
-            AtualizadoEm = DateTime.UtcNow;
+            CriadoEm = BrasiliaTime.Agora;
+            AtualizadoEm = BrasiliaTime.Agora;
 
             Validar();
         }
@@ -49,7 +50,7 @@ namespace GarageOS.Domain.Entities
             Email = email;
             Telefone = telefone;
             Endereco = endereco;
-            AtualizadoEm = DateTime.UtcNow;
+            AtualizadoEm = BrasiliaTime.Agora;
 
             Validar();
         }
@@ -61,7 +62,7 @@ namespace GarageOS.Domain.Entities
                 throw new ArgumentException("Cliente já está inativo.");
 
             Ativo = false;
-            AtualizadoEm = DateTime.UtcNow;
+            AtualizadoEm = BrasiliaTime.Agora;
         }
 
         
@@ -71,7 +72,7 @@ namespace GarageOS.Domain.Entities
                 throw new ArgumentException("Cliente já está ativo.");
 
             Ativo = true;
-            AtualizadoEm = DateTime.UtcNow;
+            AtualizadoEm = BrasiliaTime.Agora;
         }
 
     }

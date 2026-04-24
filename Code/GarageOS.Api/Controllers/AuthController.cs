@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using GarageOS.Domain.Utils;
 using System.Security.Claims;
 using System.Text;
 using GarageOS.Application.DTOs.Auth;
@@ -43,7 +44,7 @@ public class AuthController : ControllerBase
 
         var key   = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var expiresAt = DateTime.UtcNow.AddMinutes(expires);
+        var expiresAt = BrasiliaTime.Agora.AddMinutes(expires);
 
         var claims = new[]
         {
