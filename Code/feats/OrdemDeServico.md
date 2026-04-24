@@ -18,7 +18,7 @@ A Ordem de Serviço representa o ciclo de vida completo de um atendimento na ofi
 
 **Acompanhamento público** — um endpoint sem autenticação permite que o cliente consulte o status da sua OS pelo número único gerado no momento da abertura.
 
-**Monitoramento de execução** — cada serviço dentro da OS pode ter seu tempo de execução registrado individualmente (início e fim), permitindo calcular o tempo médio de execução por tipo de serviço ao longo do tempo.
+**Monitoramento de execução** — cada serviço dentro da OS tem seu tempo de execução registrado individualmente (início e fim). Com base nesses registros, dois endpoints de aging são disponibilizados: um que recebe o ID de um serviço e retorna o seu tempo médio de execução, e outro que lista todos os serviços com seus respectivos tempos médios — permitindo à oficina identificar quais serviços consomem mais tempo na prática.
 
 ---
 
