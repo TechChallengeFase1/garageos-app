@@ -52,6 +52,16 @@ public class ExceptionMiddleware
             _logger.LogWarning(ex, "Não encontrado: {Message}", ex.Message);
             await EscreverRespostaAsync(context, HttpStatusCode.NotFound, ex.Message);
         }
+        catch (OrdemDeServicoNaoEncontradaException ex)
+        {
+            _logger.LogWarning(ex, "Não encontrado: {Message}", ex.Message);
+            await EscreverRespostaAsync(context, HttpStatusCode.NotFound, ex.Message);
+        }
+        catch (OrdemDeServicoStatusInvalidoException ex)
+        {
+            _logger.LogWarning(ex, "Status inválido: {Message}", ex.Message);
+            await EscreverRespostaAsync(context, HttpStatusCode.BadRequest, ex.Message);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erro inesperado: {Message}", ex.Message);

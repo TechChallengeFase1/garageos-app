@@ -1,6 +1,7 @@
 using GarageOS.Api.Middlewares;
 using GarageOS.Application.UseCases.Clientes;
 using GarageOS.Application.UseCases.Estoques;
+using GarageOS.Application.UseCases.OrdensDeServico;
 using GarageOS.Application.UseCases.Servicos;
 using GarageOS.Application.UseCases.Veiculos;
 using GarageOS.Application.Validators.Veiculos;
@@ -30,6 +31,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IVeiculoRepository, VeiculoRepository>();
         services.AddScoped<IClienteRepository, ClienteRepository>();
         services.AddScoped<IEstoqueRepository, EstoqueRepository>();
+        services.AddScoped<IOrdemDeServicoRepository, OrdemDeServicoRepository>();
+        services.AddScoped<IOrcamentoRepository, OrcamentoRepository>();
 
         return services;
     }
@@ -61,6 +64,14 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ObterEstoqueUseCase>();
         services.AddScoped<AlterarEstoqueUseCase>();
         services.AddScoped<DeletarEstoqueUseCase>();
+
+        services.AddScoped<CriarOrdemDeServicoUseCase>();
+        services.AddScoped<ListarOrdensDeServicoUseCase>();
+        services.AddScoped<ObterOrdemDeServicoUseCase>();
+        services.AddScoped<AdicionarServicoNaOSUseCase>();
+        services.AddScoped<AdicionarEstoqueNaOSUseCase>();
+        services.AddScoped<AlterarStatusOrdemDeServicoUseCase>();
+        services.AddScoped<AcompanharOrdemDeServicoUseCase>();
 
         return services;
     }
