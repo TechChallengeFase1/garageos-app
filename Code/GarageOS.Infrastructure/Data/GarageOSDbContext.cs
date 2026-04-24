@@ -12,6 +12,10 @@ public class GarageOSDbContext : DbContext
     public DbSet<Veiculo> Veiculos { get; set; }
     public DbSet<Cliente> Clientes { get; set; }
     public DbSet<Estoque> Estoques { get; set; }
+    public DbSet<OrdemDeServico> OrdensDeServico { get; set; }
+    public DbSet<OrdemDeServicoServico> OrdensDeServicoServicos { get; set; }
+    public DbSet<OrdemDeServicoEstoque> OrdensDeServicoEstoques { get; set; }
+    public DbSet<Orcamento> Orcamentos { get; set; }
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
