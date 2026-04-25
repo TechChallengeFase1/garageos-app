@@ -119,6 +119,20 @@ fi
 echo -e "${GREEN}✓${NC} Testes executados"
 echo ""
 
+# DEBUG: Verificar se arquivo de cobertura foi criado
+echo -e "${YELLOW}Procurando arquivo de cobertura...${NC}"
+if [ -f "TestResults/*/coverage.opencover.xml" ] 2>/dev/null || [ -n "$(find ./TestResults -name 'coverage.opencover.xml' 2>/dev/null)" ]; then
+    echo -e "${GREEN}Arquivo de cobertura encontrado:${NC}"
+    find ./TestResults -name "coverage.opencover.xml" 2>/dev/null | while read file; do
+        echo -e "  ${BLUE}$file${NC}"
+    done
+else
+    echo -e "${RED}AVISO: Arquivo coverage.opencover.xml NAO encontrado!${NC}"
+    echo -e "${YELLOW}Arquivos em TestResults:${NC}"
+    find ./TestResults -type f 2>/dev/null || echo "  Diretório vazio ou não existe"
+fi
+echo ""
+
 # Finalizar
 echo -e "${YELLOW}📊 Enviando relatório para SonarQube...${NC}"
 dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
