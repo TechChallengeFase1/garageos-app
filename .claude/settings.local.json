@@ -25,7 +25,9 @@
       "Bash(git commit -m ' *)",
       "Bash(awk '{print $NF}')",
       "Bash(chmod +x \"/home/gabriel/projetos/pos/fase 1/GarageOS/Code/sonar-scan.sh\")",
-      "Bash(./sonar-scan.sh)"
+      "Bash(./sonar-scan.sh)",
+      "Bash(dotnet add *)",
+      "Bash(dotnet restore *)"
     ]
   }
 }
