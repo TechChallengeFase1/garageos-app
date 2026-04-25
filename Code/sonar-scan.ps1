@@ -14,20 +14,20 @@ $colors = @{
 
 function Write-Header {
     Write-Host ""
-    Write-Host "╔════════════════════════════════════════╗" -ForegroundColor $colors.Blue
-    Write-Host "║   SonarQube Scanner for GarageOS       ║" -ForegroundColor $colors.Blue
-    Write-Host "╚════════════════════════════════════════╝" -ForegroundColor $colors.Blue
+    Write-Host "======================================" -ForegroundColor $colors.Blue
+    Write-Host "   SonarQube Scanner for GarageOS" -ForegroundColor $colors.Blue
+    Write-Host "======================================" -ForegroundColor $colors.Blue
     Write-Host ""
 }
 
 function Write-Error-Custom {
     param([string]$Message)
-    Write-Host "❌ $Message" -ForegroundColor $colors.Red
+    Write-Host "[ERROR] $Message" -ForegroundColor $colors.Red
 }
 
 function Write-Success {
     param([string]$Message)
-    Write-Host "✓ $Message" -ForegroundColor $colors.Green
+    Write-Host "[OK] $Message" -ForegroundColor $colors.Green
 }
 
 function Write-Info {
@@ -36,7 +36,7 @@ function Write-Info {
 }
 
 # ============================================
-# VALIDAÇÕES INICIAIS
+# VALIDACOES INICIAIS
 # ============================================
 
 Write-Header
@@ -45,7 +45,7 @@ Write-Header
 $envFile = "../.env"
 
 if (-not (Test-Path $envFile)) {
-    Write-Error-Custom "Erro: arquivo .env não encontrado na raiz!"
+    Write-Error-Custom "Erro: arquivo .env nao encontrado na raiz!"
     Write-Host ""
     Write-Host "Passos para configurar:"
     Write-Host "  1. Na raiz do projeto, copie o arquivo de exemplo:"
@@ -53,14 +53,14 @@ if (-not (Test-Path $envFile)) {
     Write-Host ""
     Write-Host "  2. Edite .env e preencha SONAR_TOKEN:"
     Write-Host "     - Acesse: http://localhost:9000"
-    Write-Host "     - Clique em seu avatar → My Account → Security"
+    Write-Host "     - Clique em seu avatar > My Account > Security"
     Write-Host "     - Gere um novo token"
     Write-Host "     - Cole o token em SONAR_TOKEN no .env"
     Write-Host ""
     exit 1
 }
 
-# Carregar variáveis do .env
+# Carregar variaveis do .env
 $envContent = Get-Content $envFile | Where-Object { $_ -notmatch "^#" -and $_ -notmatch "^\s*$" }
 foreach ($line in $envContent) {
     if ($line -match "^([^=]+)=(.*)$") {
@@ -72,31 +72,31 @@ foreach ($line in $envContent) {
 
 # Validar token
 if ([string]::IsNullOrEmpty($env:SONAR_TOKEN) -or $env:SONAR_TOKEN -eq "sqp_seu_token_aqui") {
-    Write-Error-Custom "Erro: SONAR_TOKEN inválido em .env"
+    Write-Error-Custom "Erro: SONAR_TOKEN invalido em .env"
     Write-Host ""
     Write-Host "Para obter seu token:"
     Write-Host "  1. Acesse: http://localhost:9000"
-    Write-Host "  2. Clique em seu avatar → My Account → Security"
+    Write-Host "  2. Clique em seu avatar > My Account > Security"
     Write-Host "  3. Clique em 'Generate Token'"
-    Write-Host "  4. Copie o token (começa com sqp_)"
-    Write-Host "  5. Cole em .env na variável SONAR_TOKEN"
+    Write-Host "  4. Copie o token (comeca com sqp_)"
+    Write-Host "  5. Cole em .env na variavel SONAR_TOKEN"
     Write-Host ""
     exit 1
 }
 
 # Validar host
 if ([string]::IsNullOrEmpty($env:SONAR_HOST_URL)) {
-    Write-Error-Custom "Erro: SONAR_HOST_URL não configurado"
+    Write-Error-Custom "Erro: SONAR_HOST_URL nao configurado"
     exit 1
 }
 
-Write-Success "Configurações carregadas"
+Write-Success "Configuracoes carregadas"
 Write-Host "  Host: $($env:SONAR_HOST_URL)" -ForegroundColor $colors.Blue
 Write-Host "  Projeto: $($env:SONAR_PROJECT_KEY)" -ForegroundColor $colors.Blue
 Write-Host ""
 
 # ============================================
-# VERIFICAR CONEXÃO COM SONARQUBE
+# VERIFICAR CONEXAO COM SONARQUBE
 # ============================================
 
 Write-Info "Verificando conexao com SonarQube..."
@@ -106,8 +106,8 @@ try {
                                   -ErrorAction Stop
     Write-Success "Conectado ao SonarQube"
 } catch {
-    Write-Error-Custom "Erro: SonarQube não está respondendo"
-    Write-Host "    Verifique se está rodando em: $($env:SONAR_HOST_URL)"
+    Write-Error-Custom "Erro: SonarQube nao esta respondendo"
+    Write-Host "    Verifique se esta rodando em: $($env:SONAR_HOST_URL)"
     exit 1
 }
 Write-Host ""
@@ -120,7 +120,7 @@ Write-Info "Limpando analise anterior..."
 if (Test-Path ".sonarqube") {
     Remove-Item -Recurse -Force ".sonarqube" | Out-Null
 }
-Write-Success "Limpeza concluída"
+Write-Success "Limpeza concluida"
 Write-Host ""
 
 # ============================================
@@ -154,10 +154,10 @@ Write-Host ""
 Write-Info "Compilando projeto..."
 & dotnet build GarageOS.slnx
 if ($LASTEXITCODE -ne 0) {
-    Write-Error-Custom "Erro na compilação"
+    Write-Error-Custom "Erro na compilacao"
     exit 1
 }
-Write-Success "Compilação concluída"
+Write-Success "Compilacao concluida"
 Write-Host ""
 
 # ============================================
@@ -186,11 +186,11 @@ Write-Info "Enviando relatorio para SonarQube..."
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
-    Write-Host "╔════════════════════════════════════════╗" -ForegroundColor $colors.Green
-    Write-Host "║  Analise concluida com sucesso!       ║" -ForegroundColor $colors.Green
-    Write-Host "╚════════════════════════════════════════╝" -ForegroundColor $colors.Green
+    Write-Host "======================================" -ForegroundColor $colors.Green
+    Write-Host "  [OK] Analise concluida com sucesso!" -ForegroundColor $colors.Green
+    Write-Host "======================================" -ForegroundColor $colors.Green
     Write-Host ""
-    Write-Host "Acesse o relatório em:" -ForegroundColor $colors.Green
+    Write-Host "Acesse o relatorio em:" -ForegroundColor $colors.Green
     Write-Host "  $($env:SONAR_HOST_URL)/projects" -ForegroundColor $colors.Blue
     Write-Host ""
 } else {
