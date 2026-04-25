@@ -1,0 +1,50 @@
+# Environment variables (tokens pessoais)
+.env
+.env.local
+.env.*.local
+
+# Build results
+bin/
+obj/
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+
+# IDE
+.vs/
+.vscode/
+*.swp
+*.swo
+*.user
+*.userosscache
+*.sln.docstates
+.idea/
+*.suo
+
+# Test Results
+TestResults/
+Coverage/
+
+# SonarQube
+.sonarqube/
+.scannerwork/
+
+# NuGet
+.nuget/
+packages/
+*.nupkg
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log

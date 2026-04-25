@@ -18,7 +18,13 @@
       "Bash(curl -s \"http://localhost:9000/api/server/version\")",
       "Bash(curl *)",
       "Bash(dotnet test *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(docker-compose down *)",
+      "Bash(docker compose down *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(awk '{print $NF}')",
+      "Bash(chmod +x \"/home/gabriel/projetos/pos/fase 1/GarageOS/Code/sonar-scan.sh\")"
     ]
   }
 }
