@@ -37,7 +37,21 @@ public class OrdensDeServicoController : ControllerBase
         _acompanharUseCase = acompanharUseCase;
     }
 
-    /// <summary>Cria uma nova Ordem de Serviço.</summary>
+    /// <summary>Cria uma nova Ordem de Serviço</summary>
+    /// <remarks>
+    /// Cria uma nova Ordem de Serviço vinculada a um cliente e um veículo.
+    /// A OS é inicializada com status "Recebida" e um número sequencial único no formato OS-{ANO}-{SEQUENCIAL:D5}.
+    ///
+    /// Exemplo de resposta:
+    /// - NumeroOS: OS-2026-00001
+    /// - Status: Recebida
+    /// - ClienteId e VeiculoId devem existir no sistema
+    /// </remarks>
+    /// <param name="request">Dados para criação da Ordem de Serviço (ClienteId, VeiculoId)</param>
+    /// <returns>Ordem de Serviço criada com sucesso (201)</returns>
+    /// <response code="201">Ordem de Serviço criada com sucesso</response>
+    /// <response code="400">Cliente ou Veículo não encontrado</response>
+    /// <response code="401">Não autorizado - token JWT ausente ou inválido</response>
     [Authorize]
     [HttpPost]
     [ProducesResponseType(typeof(OrdemDeServicoResponse), StatusCodes.Status201Created)]
@@ -65,7 +79,14 @@ public class OrdensDeServicoController : ControllerBase
         }
     }
 
-    /// <summary>Lista todas as Ordens de Serviço.</summary>
+    /// <summary>Lista todas as Ordens de Serviço cadastradas</summary>
+    /// <remarks>
+    /// Retorna uma lista completa de todas as Ordens de Serviço do sistema.
+    /// Cada OS inclui seus serviços, itens de estoque, orçamento (se existente) e informações de cliente/veículo.
+    /// </remarks>
+    /// <returns>Lista de Ordens de Serviço</returns>
+    /// <response code="200">Lista de Ordens de Serviço retornada com sucesso</response>
+    /// <response code="401">Não autorizado - token JWT ausente ou inválido</response>
     [Authorize]
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<OrdemDeServicoResponse>), StatusCodes.Status200OK)]
@@ -75,7 +96,16 @@ public class OrdensDeServicoController : ControllerBase
         return Ok(resultado);
     }
 
-    /// <summary>Obtém uma Ordem de Serviço pelo ID.</summary>
+    /// <summary>Obtém uma Ordem de Serviço específica pelo ID</summary>
+    /// <remarks>
+    /// Retorna os detalhes completos de uma Ordem de Serviço específica,
+    /// incluindo todos os seus serviços associados, itens de estoque e orçamento.
+    /// </remarks>
+    /// <param name="id">ID único da Ordem de Serviço (GUID)</param>
+    /// <returns>Dados completos da Ordem de Serviço</returns>
+    /// <response code="200">Ordem de Serviço encontrada e retornada com sucesso</response>
+    /// <response code="404">Ordem de Serviço não encontrada</response>
+    /// <response code="401">Não autorizado - token JWT ausente ou inválido</response>
     [Authorize]
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(OrdemDeServicoResponse), StatusCodes.Status200OK)]
@@ -93,7 +123,19 @@ public class OrdensDeServicoController : ControllerBase
         }
     }
 
-    /// <summary>Adiciona um serviço à Ordem de Serviço.</summary>
+    /// <summary>Adiciona um serviço à Ordem de Serviço</summary>
+    /// <remarks>
+    /// Adiciona um serviço já cadastrado à Ordem de Serviço.
+    /// Ao adicionar o primeiro serviço, o status da OS muda de "Recebida" para "EmDiagnostico".
+    /// O serviço deve existir no sistema e ser válido.
+    /// </remarks>
+    /// <param name="id">ID único da Ordem de Serviço (GUID)</param>
+    /// <param name="request">Dados do serviço a adicionar (ServicoId)</param>
+    /// <returns>Ordem de Serviço atualizada com o novo serviço</returns>
+    /// <response code="200">Serviço adicionado com sucesso</response>
+    /// <response code="400">Serviço não encontrado ou inválido</response>
+    /// <response code="404">Ordem de Serviço não encontrada</response>
+    /// <response code="401">Não autorizado - token JWT ausente ou inválido</response>
     [Authorize]
     [HttpPost("{id:guid}/servicos")]
     [ProducesResponseType(typeof(OrdemDeServicoResponse), StatusCodes.Status200OK)]
@@ -122,7 +164,22 @@ public class OrdensDeServicoController : ControllerBase
         }
     }
 
-    /// <summary>Adiciona um item de estoque à Ordem de Serviço.</summary>
+    /// <summary>Adiciona um item de estoque (peça/insumo) à Ordem de Serviço</summary>
+    /// <remarks>
+    /// Adiciona um item de estoque já cadastrado à Ordem de Serviço com uma quantidade específica.
+    /// Ao adicionar o primeiro item, o status da OS muda de "Recebida" para "EmDiagnostico".
+    /// A quantidade deve ser maior que zero e o item de estoque deve existir no sistema.
+    ///
+    /// Nota: O decremento da quantidade em estoque ocorre apenas na aprovação do orçamento,
+    /// não quando o item é adicionado à OS.
+    /// </remarks>
+    /// <param name="id">ID único da Ordem de Serviço (GUID)</param>
+    /// <param name="request">Dados do item de estoque (EstoqueId, Quantidade)</param>
+    /// <returns>Ordem de Serviço atualizada com o novo item de estoque</returns>
+    /// <response code="200">Item de estoque adicionado com sucesso</response>
+    /// <response code="400">Item de estoque não encontrado, quantidade inválida ou Ordem de Serviço não encontrada</response>
+    /// <response code="404">Ordem de Serviço não encontrada</response>
+    /// <response code="401">Não autorizado - token JWT ausente ou inválido</response>
     [Authorize]
     [HttpPost("{id:guid}/estoques")]
     [ProducesResponseType(typeof(OrdemDeServicoResponse), StatusCodes.Status200OK)]
@@ -151,7 +208,24 @@ public class OrdensDeServicoController : ControllerBase
         }
     }
 
-    /// <summary>Altera o status da Ordem de Serviço (apenas Finalizada e Entregue).</summary>
+    /// <summary>Altera manualmente o status da Ordem de Serviço</summary>
+    /// <remarks>
+    /// Permite alterar manualmente o status de uma Ordem de Serviço para estados finais.
+    /// Apenas os status "Finalizada" e "Entregue" podem ser definidos via este endpoint.
+    /// Outros status são definidos automaticamente pelo fluxo de negócio:
+    /// - Recebida: Status inicial ao criar a OS
+    /// - EmDiagnostico: Definido automaticamente ao adicionar serviços/peças
+    /// - AguardandoAprovacao: Definido ao gerar orçamento
+    /// - EmExecucao: Definido ao aprovar orçamento
+    /// - Finalizada/Entregue: Definidos via este endpoint
+    /// </remarks>
+    /// <param name="id">ID único da Ordem de Serviço (GUID)</param>
+    /// <param name="request">Novo status desejado (apenas Finalizada ou Entregue)</param>
+    /// <returns>Ordem de Serviço atualizada com o novo status</returns>
+    /// <response code="200">Status alterado com sucesso</response>
+    /// <response code="400">Status inválido (apenas Finalizada e Entregue são permitidos)</response>
+    /// <response code="404">Ordem de Serviço não encontrada</response>
+    /// <response code="401">Não autorizado - token JWT ausente ou inválido</response>
     [Authorize]
     [HttpPatch("{id:guid}/status")]
     [ProducesResponseType(typeof(OrdemDeServicoResponse), StatusCodes.Status200OK)]
@@ -180,7 +254,25 @@ public class OrdensDeServicoController : ControllerBase
         }
     }
 
-    /// <summary>Acompanha uma Ordem de Serviço pelo número (público, sem autenticação).</summary>
+    /// <summary>Acompanha o progresso de uma Ordem de Serviço (público)</summary>
+    /// <remarks>
+    /// Endpoint PÚBLICO (sem autenticação) que permite qualquer pessoa acompanhar o status
+    /// e progresso de uma Ordem de Serviço usando apenas seu número único.
+    ///
+    /// Este endpoint é útil para:
+    /// - Clientes acompanharem o status de seus serviços
+    /// - Consulta rápida sem necessidade de login
+    /// - Verificar quais serviços estão sendo executados
+    ///
+    /// Retorna informações simplificadas (sem dados sensíveis) incluindo:
+    /// - Número da OS (ex: OS-2026-00001)
+    /// - Status atual (Recebida, EmDiagnostico, AguardandoAprovacao, EmExecucao, Finalizada, Entregue)
+    /// - Lista de serviços com seus status de execução
+    /// </remarks>
+    /// <param name="numeroOS">Número único da Ordem de Serviço no formato OS-{ANO}-{SEQUENCIAL} (ex: OS-2026-00001)</param>
+    /// <returns>Informações simplificadas de acompanhamento da Ordem de Serviço</returns>
+    /// <response code="200">Ordem de Serviço encontrada - status retornado com sucesso</response>
+    /// <response code="404">Ordem de Serviço não encontrada com este número</response>
     [AllowAnonymous]
     [HttpGet("acompanhar/{numeroOS}")]
     [ProducesResponseType(typeof(AcompanhamentoOSResponse), StatusCodes.Status200OK)]
