@@ -29,7 +29,15 @@ public class ServicosController : ControllerBase
         _alterarServicoUseCase = alterarServicoUseCase;
     }
 
-    /// <summary>Lista todos os serviços cadastrados.</summary>
+    /// <summary>Lista todos os serviços cadastrados</summary>
+    /// <remarks>
+    /// Retorna uma lista de todos os serviços disponíveis no sistema.
+    /// Cada serviço inclui: ID, nome e valor/preço unitário.
+    /// Serviços são usados em Ordens de Serviço para orçamento e execução.
+    /// </remarks>
+    /// <returns>Lista completa de serviços</returns>
+    /// <response code="200">Lista retornada com sucesso</response>
+    /// <response code="401">Não autorizado - token JWT ausente ou inválido</response>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<ServicoResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Listar()
@@ -38,7 +46,24 @@ public class ServicosController : ControllerBase
         return Ok(resultado);
     }
 
-    /// <summary>Cadastra um novo serviço.</summary>
+    /// <summary>Cadastra um novo serviço</summary>
+    /// <remarks>
+    /// Cria um novo serviço que poderá ser adicionado às Ordens de Serviço.
+    /// O serviço deve ter um nome único e um preço válido (maior que zero).
+    ///
+    /// O preço do serviço é usado para:
+    /// - Calcular o valor total do orçamento quando adicionado a uma OS
+    /// - Registrar histórico de preços praticados
+    ///
+    /// Validações:
+    /// - Nome: obrigatório, máximo 100 caracteres, único
+    /// - Preço: obrigatório, maior que zero, máximo 2 casas decimais
+    /// </remarks>
+    /// <param name="request">Dados do novo serviço (NomeServico, Preco)</param>
+    /// <returns>Serviço criado com sucesso</returns>
+    /// <response code="201">Serviço criado com sucesso</response>
+    /// <response code="400">Dados inválidos ou serviço com mesmo nome já existe</response>
+    /// <response code="401">Não autorizado - token JWT ausente ou inválido</response>
     [HttpPost]
     [ProducesResponseType(typeof(ServicoResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -54,7 +79,16 @@ public class ServicosController : ControllerBase
         return CreatedAtAction(nameof(Obter), new { id = resultado.Id }, resultado);
     }
 
-    /// <summary>Obtém um serviço pelo ID.</summary>
+    /// <summary>Obtém um serviço específico pelo ID</summary>
+    /// <remarks>
+    /// Retorna os dados completos de um serviço incluindo seu nome e preço.
+    /// Útil para verificar o preço atual de um serviço antes de adicionar a uma OS.
+    /// </remarks>
+    /// <param name="id">ID único do serviço (GUID)</param>
+    /// <returns>Dados completos do serviço</returns>
+    /// <response code="200">Serviço encontrado - dados retornados com sucesso</response>
+    /// <response code="404">Serviço não encontrado</response>
+    /// <response code="401">Não autorizado - token JWT ausente ou inválido</response>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(ServicoResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -71,7 +105,19 @@ public class ServicosController : ControllerBase
         }
     }
 
-    /// <summary>Altera os dados de um serviço existente.</summary>
+    /// <summary>Atualiza os dados de um serviço existente</summary>
+    /// <remarks>
+    /// Permite alterar o nome e/ou preço de um serviço já cadastrado.
+    /// Todas as Ordens de Serviço que usam este serviço considerarão o novo preço
+    /// apenas para orçamentos futuros. Orçamentos já gerados não são recalculados.
+    /// </remarks>
+    /// <param name="id">ID único do serviço a atualizar (GUID)</param>
+    /// <param name="request">Novos dados do serviço (NomeServico, Preco)</param>
+    /// <returns>Serviço atualizado com os novos dados</returns>
+    /// <response code="200">Serviço atualizado com sucesso</response>
+    /// <response code="400">Dados inválidos</response>
+    /// <response code="404">Serviço não encontrado</response>
+    /// <response code="401">Não autorizado - token JWT ausente ou inválido</response>
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(ServicoResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

@@ -19,7 +19,28 @@ public class AuthController : ControllerBase
         _configuration = configuration;
     }
 
-    /// <summary>Autentica o usuário administrativo e retorna um token JWT.</summary>
+    /// <summary>Autentica o usuário administrativo e gera token JWT</summary>
+    /// <remarks>
+    /// Realiza a autenticação do usuário administrativo usando credenciais básicas (username e password).
+    /// Após autenticação bem-sucedida, retorna um token JWT válido por 60 minutos.
+    ///
+    /// O token retornado deve ser enviado em todas as requisições para endpoints protegidos
+    /// através do header Authorization: Bearer {token}
+    ///
+    /// Credenciais padrão:
+    /// - Username: admin
+    /// - Password: admin@123
+    ///
+    /// O token inclui:
+    /// - Issuer: GarageOS.Api
+    /// - Audience: GarageOS.Client
+    /// - Expiração: 60 minutos a partir do login (GMT-3)
+    /// - Claims: Nome do usuário e role "Admin"
+    /// </remarks>
+    /// <param name="request">Credenciais de acesso (Username, Password)</param>
+    /// <returns>Token JWT válido para autenticação em endpoints protegidos</returns>
+    /// <response code="200">Autenticação bem-sucedida - token JWT retornado</response>
+    /// <response code="401">Credenciais inválidas (usuário ou senha incorretos)</response>
     [HttpPost("login")]
     [ProducesResponseType(typeof(TokenResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
