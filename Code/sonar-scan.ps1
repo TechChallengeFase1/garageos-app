@@ -118,7 +118,29 @@ Write-Host ""
 
 Write-Info "Limpando analise anterior..."
 if (Test-Path ".sonarqube") {
-    Remove-Item -Recurse -Force ".sonarqube" | Out-Null
+    # Fechar processos que possam estar usando os arquivos
+    Get-Process -Name dotnet -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 1
+    
+    # Tentar remover com retry
+    $maxRetries = 3
+    $retryCount = 0
+    
+    while ($retryCount -lt $maxRetries) {
+        try {
+            Remove-Item -Recurse -Force ".sonarqube" -ErrorAction Stop
+            break
+        } catch {
+            $retryCount++
+            if ($retryCount -lt $maxRetries) {
+                Write-Host "  Tentativa $retryCount falhou, aguardando 2 segundos..."
+                Start-Sleep -Seconds 2
+            } else {
+                Write-Error-Custom "Nao foi possivel remover .sonarqube apos $maxRetries tentativas"
+                Write-Host "  Continuando mesmo assim..."
+            }
+        }
+    }
 }
 Write-Success "Limpeza concluida"
 Write-Host ""
