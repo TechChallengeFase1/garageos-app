@@ -6,6 +6,7 @@ using GarageOS.Domain.Exceptions;
 using GarageOS.Domain.Repositories;
 using Moq;
 using Xunit;
+using EstoqueEntity = GarageOS.Domain.Entities.Estoque;
 
 namespace GarageOS.UnitTests.Application.UseCases.OrdensDeServico;
 
@@ -40,7 +41,7 @@ public class AdicionarEstoqueNaOSUseCaseTests
         };
 
         var ordemDeServico = new OrdemDeServico("OS-2026-00001", clienteId, veiculoId);
-        var estoque = new Estoque("Óleo 5W30", 10, 150.00m, DateTime.Now, "Castrol");
+        var estoque = new EstoqueEntity("Óleo 5W30", 10, 150.00m, DateTime.Now, "Castrol");
 
         _repositoryMock
             .Setup(r => r.ObterPorIdAsync(ordemId))
@@ -110,7 +111,7 @@ public class AdicionarEstoqueNaOSUseCaseTests
 
         _estoqueRepositoryMock
             .Setup(r => r.ObterPorIdAsync(estoqueId))
-            .ReturnsAsync((Estoque?)null);
+            .ReturnsAsync((EstoqueEntity?)null);
 
         // Act
         var act = async () => await _useCase.ExecutarAsync(ordemId, request);
@@ -136,7 +137,7 @@ public class AdicionarEstoqueNaOSUseCaseTests
         };
 
         var ordemDeServico = new OrdemDeServico("OS-2026-00001", clienteId, veiculoId);
-        var estoque = new Estoque("Óleo 5W30", 20, 150.00m, DateTime.Now, "Castrol");
+        var estoque = new EstoqueEntity("Óleo 5W30", 20, 150.00m, DateTime.Now, "Castrol");
 
         _repositoryMock
             .Setup(r => r.ObterPorIdAsync(ordemId))
@@ -173,7 +174,7 @@ public class AdicionarEstoqueNaOSUseCaseTests
         };
 
         var ordemDeServico = new OrdemDeServico("OS-2026-00001", clienteId, veiculoId);
-        var estoque = new Estoque("Óleo 5W30", 20, 150.00m, DateTime.Now, "Castrol");
+        var estoque = new EstoqueEntity("Óleo 5W30", 20, 150.00m, DateTime.Now, "Castrol");
 
         _repositoryMock
             .Setup(r => r.ObterPorIdAsync(ordemId))
@@ -212,7 +213,7 @@ public class AdicionarEstoqueNaOSUseCaseTests
         };
 
         var ordemDeServico = new OrdemDeServico("OS-2026-00001", clienteId, veiculoId);
-        var estoque = new Estoque("Óleo de Freio DOT 4", 15, 85.00m, DateTime.Now, "Bosch");
+        var estoque = new EstoqueEntity("Óleo de Freio DOT 4", 15, 85.00m, DateTime.Now, "Bosch");
 
         _repositoryMock
             .Setup(r => r.ObterPorIdAsync(ordemId))
