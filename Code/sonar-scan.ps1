@@ -199,6 +199,21 @@ if ($LASTEXITCODE -ne 0) {
 Write-Success "Testes executados"
 Write-Host ""
 
+# DEBUG: Verificar se arquivo de cobertura foi criado
+Write-Host "Procurando arquivo de cobertura..." -ForegroundColor $colors.Yellow
+$coverageFiles = Get-ChildItem -Path "./TestResults" -Filter "coverage.opencover.xml" -Recurse -ErrorAction SilentlyContinue
+if ($coverageFiles) {
+    Write-Host "Arquivo de cobertura encontrado:" -ForegroundColor $colors.Green
+    foreach ($file in $coverageFiles) {
+        Write-Host "  $($file.FullName)" -ForegroundColor $colors.Blue
+    }
+} else {
+    Write-Host "AVISO: Arquivo coverage.opencover.xml NAO encontrado!" -ForegroundColor $colors.Red
+    Write-Host "Arquivos em TestResults:" -ForegroundColor $colors.Yellow
+    Get-ChildItem -Path "./TestResults" -Recurse | ForEach-Object { Write-Host "  $($_.FullName)" }
+}
+Write-Host ""
+
 # ============================================
 # FINALIZAR
 # ============================================
