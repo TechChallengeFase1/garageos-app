@@ -99,7 +99,7 @@ Write-Host ""
 # VERIFICAR CONEXÃO COM SONARQUBE
 # ============================================
 
-Write-Info "🔗 Verificando conexão com SonarQube..."
+Write-Info "Verificando conexao com SonarQube..."
 try {
     $response = Invoke-WebRequest -Uri "$($env:SONAR_HOST_URL)/api/system/status" `
                                   -TimeoutSec 5 `
@@ -116,7 +116,7 @@ Write-Host ""
 # LIMPEZA
 # ============================================
 
-Write-Info "🧹 Limpando análise anterior..."
+Write-Info "Limpando analise anterior..."
 if (Test-Path ".sonarqube") {
     Remove-Item -Recurse -Force ".sonarqube" | Out-Null
 }
@@ -127,7 +127,7 @@ Write-Host ""
 # INICIAR SONARSCANNER
 # ============================================
 
-Write-Info "📤 Iniciando SonarScanner..."
+Write-Info "Iniciando SonarScanner..."
 $scannerArgs = @(
     "begin",
     "/k:$($env:SONAR_PROJECT_KEY)",
@@ -151,7 +151,7 @@ Write-Host ""
 # COMPILAR
 # ============================================
 
-Write-Info "🔨 Compilando projeto..."
+Write-Info "Compilando projeto..."
 & dotnet build GarageOS.slnx
 if ($LASTEXITCODE -ne 0) {
     Write-Error-Custom "Erro na compilação"
@@ -164,7 +164,7 @@ Write-Host ""
 # RODAR TESTES
 # ============================================
 
-Write-Info "🧪 Executando testes com cobertura..."
+Write-Info "Executando testes com cobertura..."
 & dotnet test GarageOS.UnitTests/GarageOS.UnitTests.csproj `
               --collect:"XPlat Code Coverage" `
               --results-directory ./TestResults `
@@ -181,19 +181,19 @@ Write-Host ""
 # FINALIZAR
 # ============================================
 
-Write-Info "📊 Enviando relatório para SonarQube..."
+Write-Info "Enviando relatorio para SonarQube..."
 & dotnet sonarscanner end /d:sonar.token="$($env:SONAR_TOKEN)"
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
     Write-Host "╔════════════════════════════════════════╗" -ForegroundColor $colors.Green
-    Write-Host "║  ✅ Análise concluída com sucesso!    ║" -ForegroundColor $colors.Green
+    Write-Host "║  Analise concluida com sucesso!       ║" -ForegroundColor $colors.Green
     Write-Host "╚════════════════════════════════════════╝" -ForegroundColor $colors.Green
     Write-Host ""
     Write-Host "Acesse o relatório em:" -ForegroundColor $colors.Green
     Write-Host "  $($env:SONAR_HOST_URL)/projects" -ForegroundColor $colors.Blue
     Write-Host ""
 } else {
-    Write-Error-Custom "Erro ao finalizar análise"
+    Write-Error-Custom "Erro ao finalizar analise"
     exit 1
 }
