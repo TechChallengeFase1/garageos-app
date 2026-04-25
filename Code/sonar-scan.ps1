@@ -156,7 +156,7 @@ $scannerArgs = @(
     "/d:sonar.host.url=$($env:SONAR_HOST_URL)",
     "/d:sonar.token=$($env:SONAR_TOKEN)",
     '/d:sonar.sources="GarageOS.Domain,GarageOS.Application,GarageOS.Infrastructure,GarageOS.Api"',
-    '/d:sonar.tests="GarageOS.UnitTests"',
+    '/d:sonar.tests="GarageOS.UnitTests,GarageOS.IntegrationTests"',
     '/d:sonar.exclusions="**/Migrations/**,**/*Designer.cs,**/GarageOSDbContextModelSnapshot.cs,**/.gitkeep,**/*.md,**/bin/**,**/obj/**,**/.sonarqube/**"',
     '/d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml"'
 )
@@ -186,17 +186,30 @@ Write-Host ""
 # RODAR TESTES
 # ============================================
 
-Write-Info "Executando testes com cobertura..."
+Write-Info "Executando testes unitários com cobertura..."
 & dotnet test GarageOS.UnitTests/GarageOS.UnitTests.csproj `
               --collect:"XPlat Code Coverage" `
               --results-directory ./TestResults `
               -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Error-Custom "Erro ao executar testes"
+    Write-Error-Custom "Erro ao executar testes unitários"
     exit 1
 }
-Write-Success "Testes executados"
+Write-Success "Testes unitários executados"
+Write-Host ""
+
+Write-Info "Executando testes de integração com cobertura..."
+& dotnet test GarageOS.IntegrationTests/GarageOS.IntegrationTests.csproj `
+              --collect:"XPlat Code Coverage" `
+              --results-directory ./TestResults `
+              -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Error-Custom "Erro ao executar testes de integração"
+    exit 1
+}
+Write-Success "Testes de integração executados"
 Write-Host ""
 
 # DEBUG: Verificar se arquivo de cobertura foi criado

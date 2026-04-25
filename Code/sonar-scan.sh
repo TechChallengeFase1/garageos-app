@@ -84,7 +84,7 @@ dotnet sonarscanner begin \
   /d:sonar.host.url="$SONAR_HOST_URL" \
   /d:sonar.token="$SONAR_TOKEN" \
   /d:sonar.sources="GarageOS.Domain,GarageOS.Application,GarageOS.Infrastructure,GarageOS.Api" \
-  /d:sonar.tests="GarageOS.UnitTests" \
+  /d:sonar.tests="GarageOS.UnitTests,GarageOS.IntegrationTests" \
   /d:sonar.exclusions="**/Migrations/**,**/*Designer.cs,**/GarageOSDbContextModelSnapshot.cs,**/.gitkeep,**/*.md,**/bin/**,**/obj/**,**/.sonarqube/**" \
   /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml"
 
@@ -106,17 +106,30 @@ echo -e "${GREEN}✓${NC} Compilação concluída"
 echo ""
 
 # Rodar testes
-echo -e "${YELLOW}🧪 Executando testes com cobertura...${NC}"
+echo -e "${YELLOW}🧪 Executando testes unitários com cobertura...${NC}"
 dotnet test GarageOS.UnitTests/GarageOS.UnitTests.csproj \
   --collect:"XPlat Code Coverage" \
   --results-directory ./TestResults \
   -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
 
 if [ $? -ne 0 ]; then
-    echo -e "${RED}❌ Erro ao executar testes${NC}"
+    echo -e "${RED}❌ Erro ao executar testes unitários${NC}"
     exit 1
 fi
-echo -e "${GREEN}✓${NC} Testes executados"
+echo -e "${GREEN}✓${NC} Testes unitários executados"
+echo ""
+
+echo -e "${YELLOW}🧪 Executando testes de integração com cobertura...${NC}"
+dotnet test GarageOS.IntegrationTests/GarageOS.IntegrationTests.csproj \
+  --collect:"XPlat Code Coverage" \
+  --results-directory ./TestResults \
+  -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+
+if [ $? -ne 0 ]; then
+    echo -e "${RED}❌ Erro ao executar testes de integração${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✓${NC} Testes de integração executados"
 echo ""
 
 # DEBUG: Verificar se arquivo de cobertura foi criado
