@@ -291,7 +291,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
             Nome = "Cliente OS Teste",
             Documento = Dados.Cpf(),
             Email = Dados.Email(),
-            Telefone = "11999999999",
+            Telefone = Dados.Telefone(),
             Logradouro = "Rua Teste",
             Numero = "123",
             Bairro = "Centro",
