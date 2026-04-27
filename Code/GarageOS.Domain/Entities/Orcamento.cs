@@ -19,7 +19,7 @@ public class Orcamento
         Id = Guid.NewGuid();
         OrdemDeServicoId = ordemDeServicoId;
         Preco = preco;
-        Status = StatusOrcamento.Aprovado;
+        Status = StatusOrcamento.Pendente;
         CriadoEm = BrasiliaTime.Agora;
         AtualizadoEm = BrasiliaTime.Agora;
     }

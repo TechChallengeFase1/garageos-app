@@ -39,6 +39,18 @@ public class Estoque
         Status = quantidade > 0 ? StatusEstoque.Disponivel : StatusEstoque.Indisponivel;
     }
 
+    public void DarBaixa(int quantidade)
+    {
+        if (quantidade <= 0)
+            throw new ArgumentException("Quantidade deve ser maior que zero.", nameof(quantidade));
+
+        if (quantidade > Quantidade)
+            throw new InvalidOperationException($"Estoque insuficiente para '{Nome}'. Disponível: {Quantidade}, Solicitado: {quantidade}.");
+
+        Quantidade -= quantidade;
+        Status = Quantidade > 0 ? StatusEstoque.Disponivel : StatusEstoque.Indisponivel;
+    }
+
     public void Atualizar(string nome, int quantidade, decimal valor, DateTime dataEntrada, string fornecedor, DateTime? dataSaida = null)
     {
         if (string.IsNullOrWhiteSpace(nome))

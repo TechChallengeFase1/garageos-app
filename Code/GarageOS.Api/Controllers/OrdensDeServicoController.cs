@@ -18,6 +18,9 @@ public class OrdensDeServicoController : ControllerBase
     private readonly AdicionarEstoqueNaOSUseCase _adicionarEstoqueUseCase;
     private readonly AlterarStatusOrdemDeServicoUseCase _alterarStatusUseCase;
     private readonly AcompanharOrdemDeServicoUseCase _acompanharUseCase;
+    private readonly GerarOrcamentoUseCase _gerarOrcamentoUseCase;
+    private readonly EnviarOrcamentoUseCase _enviarOrcamentoUseCase;
+    private readonly ResponderOrcamentoUseCase _responderOrcamentoUseCase;
 
     public OrdensDeServicoController(
         CriarOrdemDeServicoUseCase criarUseCase,
@@ -26,7 +29,10 @@ public class OrdensDeServicoController : ControllerBase
         AdicionarServicoNaOSUseCase adicionarServicoUseCase,
         AdicionarEstoqueNaOSUseCase adicionarEstoqueUseCase,
         AlterarStatusOrdemDeServicoUseCase alterarStatusUseCase,
-        AcompanharOrdemDeServicoUseCase acompanharUseCase)
+        AcompanharOrdemDeServicoUseCase acompanharUseCase,
+        GerarOrcamentoUseCase gerarOrcamentoUseCase,
+        EnviarOrcamentoUseCase enviarOrcamentoUseCase,
+        ResponderOrcamentoUseCase responderOrcamentoUseCase)
     {
         _criarUseCase = criarUseCase;
         _listarUseCase = listarUseCase;
@@ -35,6 +41,9 @@ public class OrdensDeServicoController : ControllerBase
         _adicionarEstoqueUseCase = adicionarEstoqueUseCase;
         _alterarStatusUseCase = alterarStatusUseCase;
         _acompanharUseCase = acompanharUseCase;
+        _gerarOrcamentoUseCase = gerarOrcamentoUseCase;
+        _enviarOrcamentoUseCase = enviarOrcamentoUseCase;
+        _responderOrcamentoUseCase = responderOrcamentoUseCase;
     }
 
     /// <summary>Cria uma nova Ordem de Serviço</summary>
@@ -249,6 +258,104 @@ public class OrdensDeServicoController : ControllerBase
             return NotFound(new { mensagem = ex.Message });
         }
         catch (ArgumentException ex)
+        {
+            return BadRequest(new { mensagem = ex.Message });
+        }
+    }
+
+    /// <summary>Gera o orçamento de uma Ordem de Serviço</summary>
+    /// <remarks>
+    /// Calcula o preço total da OS somando os valores dos serviços e das peças utilizadas,
+    /// criando o orçamento com status "Pendente". Deve ser chamado após adicionar todos os
+    /// serviços e peças à OS.
+    /// </remarks>
+    /// <param name="id">ID único da Ordem de Serviço (GUID)</param>
+    /// <returns>Ordem de Serviço com o orçamento gerado</returns>
+    /// <response code="200">Orçamento gerado com sucesso</response>
+    /// <response code="404">Ordem de Serviço não encontrada</response>
+    /// <response code="401">Não autorizado - token JWT ausente ou inválido</response>
+    [Authorize]
+    [HttpPost("{id:guid}/orcamento")]
+    [ProducesResponseType(typeof(OrdemDeServicoResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GerarOrcamento(Guid id)
+    {
+        try
+        {
+            var resultado = await _gerarOrcamentoUseCase.ExecutarAsync(id);
+            return Ok(resultado);
+        }
+        catch (OrdemDeServicoNaoEncontradaException ex)
+        {
+            return NotFound(new { mensagem = ex.Message });
+        }
+    }
+
+    /// <summary>Envia o orçamento ao cliente para aprovação</summary>
+    /// <remarks>
+    /// Avança o status da OS para "AguardandoAprovacao", indicando que o orçamento foi
+    /// enviado ao cliente e aguarda sua resposta. A OS deve ter um orçamento gerado previamente.
+    /// </remarks>
+    /// <param name="id">ID único da Ordem de Serviço (GUID)</param>
+    /// <returns>Ordem de Serviço com status atualizado para AguardandoAprovacao</returns>
+    /// <response code="200">Orçamento enviado com sucesso</response>
+    /// <response code="404">Ordem de Serviço ou orçamento não encontrado</response>
+    /// <response code="401">Não autorizado - token JWT ausente ou inválido</response>
+    [Authorize]
+    [HttpPost("{id:guid}/orcamento/enviar")]
+    [ProducesResponseType(typeof(OrdemDeServicoResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> EnviarOrcamento(Guid id)
+    {
+        try
+        {
+            var resultado = await _enviarOrcamentoUseCase.ExecutarAsync(id);
+            return Ok(resultado);
+        }
+        catch (OrdemDeServicoNaoEncontradaException ex)
+        {
+            return NotFound(new { mensagem = ex.Message });
+        }
+        catch (OrcamentoNaoEncontradoException ex)
+        {
+            return NotFound(new { mensagem = ex.Message });
+        }
+    }
+
+    /// <summary>Registra a resposta do cliente ao orçamento (aprovação ou rejeição)</summary>
+    /// <remarks>
+    /// Ao aprovar: o status da OS avança para "EmExecucao" e as peças cadastradas na OS
+    /// têm suas quantidades decrementadas no estoque.
+    /// Ao reprovar: o orçamento é rejeitado e o status da OS vai para "Finalizada".
+    /// </remarks>
+    /// <param name="id">ID único da Ordem de Serviço (GUID)</param>
+    /// <param name="request">Resposta do cliente: Aprovado = true para aprovar, false para reprovar</param>
+    /// <returns>Ordem de Serviço com o status atualizado conforme a resposta</returns>
+    /// <response code="200">Resposta registrada com sucesso</response>
+    /// <response code="400">Estoque insuficiente para alguma peça</response>
+    /// <response code="404">Ordem de Serviço ou orçamento não encontrado</response>
+    /// <response code="401">Não autorizado - token JWT ausente ou inválido</response>
+    [Authorize]
+    [HttpPatch("{id:guid}/orcamento/resposta")]
+    [ProducesResponseType(typeof(OrdemDeServicoResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ResponderOrcamento(Guid id, [FromBody] ResponderOrcamentoRequest request)
+    {
+        try
+        {
+            var resultado = await _responderOrcamentoUseCase.ExecutarAsync(id, request);
+            return Ok(resultado);
+        }
+        catch (OrdemDeServicoNaoEncontradaException ex)
+        {
+            return NotFound(new { mensagem = ex.Message });
+        }
+        catch (OrcamentoNaoEncontradoException ex)
+        {
+            return NotFound(new { mensagem = ex.Message });
+        }
+        catch (InvalidOperationException ex)
         {
             return BadRequest(new { mensagem = ex.Message });
         }

@@ -72,6 +72,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<AdicionarEstoqueNaOSUseCase>();
         services.AddScoped<AlterarStatusOrdemDeServicoUseCase>();
         services.AddScoped<AcompanharOrdemDeServicoUseCase>();
+        services.AddScoped<GerarOrcamentoUseCase>();
+        services.AddScoped<EnviarOrcamentoUseCase>();
+        services.AddScoped<ResponderOrcamentoUseCase>();
 
         return services;
     }
