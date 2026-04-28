@@ -75,6 +75,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<GerarOrcamentoUseCase>();
         services.AddScoped<EnviarOrcamentoUseCase>();
         services.AddScoped<ResponderOrcamentoUseCase>();
+        services.AddScoped<AlterarStatusServicoNaOSUseCase>();
+        services.AddScoped<CalcularAgingServicosUseCase>();
 
         return services;
     }

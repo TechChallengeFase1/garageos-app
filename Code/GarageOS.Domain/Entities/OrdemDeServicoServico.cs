@@ -21,7 +21,7 @@ public class OrdemDeServicoServico
         Id = Guid.NewGuid();
         OrdemDeServicoId = ordemDeServicoId;
         ServicoId = servicoId;
-        Status = StatusExecucaoServico.Iniciado;
+        Status = StatusExecucaoServico.Criada;
         CriadoEm = BrasiliaTime.Agora;
     }
 
@@ -30,6 +30,7 @@ public class OrdemDeServicoServico
         if (IniciadaEm.HasValue)
             throw new ArgumentException("Execução já foi iniciada.");
 
+        Status = StatusExecucaoServico.Iniciado;
         IniciadaEm = BrasiliaTime.Agora;
     }
 

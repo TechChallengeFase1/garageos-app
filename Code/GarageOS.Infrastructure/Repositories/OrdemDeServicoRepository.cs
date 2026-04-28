@@ -48,6 +48,17 @@ public class OrdemDeServicoRepository : IOrdemDeServicoRepository
             .FirstOrDefaultAsync(x => x.NumeroOS == numeroOS);
     }
 
+    public async Task<OrdemDeServico?> ObterPorNumeroOSComTrackingAsync(string numeroOS)
+    {
+        return await _context.OrdensDeServico
+            .Include(x => x.Servicos)
+            .ThenInclude(x => x.Servico)
+            .Include(x => x.Estoques)
+            .ThenInclude(x => x.Estoque)
+            .Include(x => x.Orcamento)
+            .FirstOrDefaultAsync(x => x.NumeroOS == numeroOS);
+    }
+
     public async Task AdicionarAsync(OrdemDeServico ordemDeServico)
     {
         _context.OrdensDeServico.Add(ordemDeServico);
@@ -58,6 +69,15 @@ public class OrdemDeServicoRepository : IOrdemDeServicoRepository
     {
         _context.OrdensDeServico.Update(ordemDeServico);
         await _context.SaveChangesAsync();
+    }
+
+    public async Task<IEnumerable<OrdemDeServicoServico>> ObterServicosFinalizadosAsync()
+    {
+        return await _context.OrdensDeServicoServicos
+            .AsNoTracking()
+            .Include(x => x.Servico)
+            .Where(x => x.IniciadaEm.HasValue && x.FinalizadaEm.HasValue)
+            .ToListAsync();
     }
 
     public async Task<int> ObterUltimoSequencialDoAnoAsync(int ano)

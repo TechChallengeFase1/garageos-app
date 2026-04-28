@@ -21,6 +21,8 @@ public class OrdensDeServicoController : ControllerBase
     private readonly GerarOrcamentoUseCase _gerarOrcamentoUseCase;
     private readonly EnviarOrcamentoUseCase _enviarOrcamentoUseCase;
     private readonly ResponderOrcamentoUseCase _responderOrcamentoUseCase;
+    private readonly AlterarStatusServicoNaOSUseCase _alterarStatusServicoUseCase;
+    private readonly CalcularAgingServicosUseCase _calcularAgingUseCase;
 
     public OrdensDeServicoController(
         CriarOrdemDeServicoUseCase criarUseCase,
@@ -32,7 +34,9 @@ public class OrdensDeServicoController : ControllerBase
         AcompanharOrdemDeServicoUseCase acompanharUseCase,
         GerarOrcamentoUseCase gerarOrcamentoUseCase,
         EnviarOrcamentoUseCase enviarOrcamentoUseCase,
-        ResponderOrcamentoUseCase responderOrcamentoUseCase)
+        ResponderOrcamentoUseCase responderOrcamentoUseCase,
+        AlterarStatusServicoNaOSUseCase alterarStatusServicoUseCase,
+        CalcularAgingServicosUseCase calcularAgingUseCase)
     {
         _criarUseCase = criarUseCase;
         _listarUseCase = listarUseCase;
@@ -44,6 +48,8 @@ public class OrdensDeServicoController : ControllerBase
         _gerarOrcamentoUseCase = gerarOrcamentoUseCase;
         _enviarOrcamentoUseCase = enviarOrcamentoUseCase;
         _responderOrcamentoUseCase = responderOrcamentoUseCase;
+        _alterarStatusServicoUseCase = alterarStatusServicoUseCase;
+        _calcularAgingUseCase = calcularAgingUseCase;
     }
 
     /// <summary>Cria uma nova Ordem de Serviço</summary>
@@ -359,6 +365,76 @@ public class OrdensDeServicoController : ControllerBase
         {
             return BadRequest(new { mensagem = ex.Message });
         }
+    }
+
+    /// <summary>Altera o status de execução de um serviço dentro de uma OS</summary>
+    /// <remarks>
+    /// Permite marcar um serviço como Iniciado ou Finalizado.
+    /// O serviço deve estar com status Criada para ser iniciado, e Iniciado para ser finalizado.
+    /// Os timestamps IniciadaEm e FinalizadaEm são registrados automaticamente.
+    ///
+    /// Use o campo 'Id' (não 'ServicoId') retornado na lista de serviços da OS como servicoItemId.
+    /// </remarks>
+    /// <param name="numeroOS">Número da Ordem de Serviço (ex: OS-2026-00001)</param>
+    /// <param name="servicoItemId">ID do item de serviço na OS (OrdemDeServicoServico.Id)</param>
+    /// <param name="request">Status desejado: Iniciado (1) ou Finalizado (2)</param>
+    /// <returns>Dados atualizados do item de serviço</returns>
+    /// <response code="200">Status alterado com sucesso</response>
+    /// <response code="400">Status inválido ou transição de status não permitida</response>
+    /// <response code="404">OS ou serviço não encontrado</response>
+    /// <response code="401">Não autorizado - token JWT ausente ou inválido</response>
+    [Authorize]
+    [HttpPatch("{numeroOS}/servicos/{servicoItemId:guid}/status")]
+    [ProducesResponseType(typeof(ServicoItemResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AlterarStatusServico(
+        string numeroOS,
+        Guid servicoItemId,
+        [FromBody] AlterarStatusServicoNaOSRequest request)
+    {
+        var validator = new AlterarStatusServicoNaOSValidator();
+        var validation = await validator.ValidateAsync(request);
+
+        if (!validation.IsValid)
+            return BadRequest(validation.Errors.Select(e => e.ErrorMessage));
+
+        try
+        {
+            var resultado = await _alterarStatusServicoUseCase.ExecutarAsync(numeroOS, servicoItemId, request);
+            return Ok(resultado);
+        }
+        catch (OrdemDeServicoNaoEncontradaException ex)
+        {
+            return NotFound(new { mensagem = ex.Message });
+        }
+        catch (ServicoNaOSNaoEncontradoException ex)
+        {
+            return NotFound(new { mensagem = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { mensagem = ex.Message });
+        }
+    }
+
+    /// <summary>Calcula o aging (tempo médio de execução) por tipo de serviço</summary>
+    /// <remarks>
+    /// Retorna o tempo médio de execução de cada serviço com base nas OSs finalizadas.
+    /// Considera apenas serviços que possuem IniciadaEm e FinalizadaEm preenchidos.
+    ///
+    /// O campo TempoMedioFormatado exibe o tempo de forma legível (ex: "2h 30min", "45min").
+    /// </remarks>
+    /// <returns>Lista de serviços com tempo médio de execução</returns>
+    /// <response code="200">Aging calculado com sucesso</response>
+    /// <response code="401">Não autorizado - token JWT ausente ou inválido</response>
+    [Authorize]
+    [HttpGet("aging")]
+    [ProducesResponseType(typeof(IEnumerable<AgingServicoResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> CalcularAging()
+    {
+        var resultado = await _calcularAgingUseCase.ExecutarAsync();
+        return Ok(resultado);
     }
 
     /// <summary>Acompanha o progresso de uma Ordem de Serviço (público)</summary>
