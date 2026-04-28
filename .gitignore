@@ -73,3 +73,6 @@ obj/
 .env.*
 !.env.example
 appsettings.Development.json
+
+# MCP config (contém tokens — não versionar)
+.mcp.json

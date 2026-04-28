@@ -27,7 +27,8 @@
       "Bash(chmod +x \"/home/gabriel/projetos/pos/fase 1/GarageOS/Code/sonar-scan.sh\")",
       "Bash(./sonar-scan.sh)",
       "Bash(dotnet add *)",
-      "Bash(dotnet restore *)"
+      "Bash(dotnet restore *)",
+      "Bash(claude mcp *)"
     ]
   }
 }
