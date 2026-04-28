@@ -497,4 +497,147 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         await _client.PostAsJsonAsync($"/api/ordensdeservico/{os.Id}/orcamento/enviar", new { });
         return os;
     }
+
+    // ── PATCH /api/ordensdeservico/{numeroOS}/servicos/{servicoItemId}/status ──
+
+    [Fact]
+    public async Task PATCH_AlterarStatusServico_ParaIniciado_DeveRetornar200ComStatusIniciado()
+    {
+        var (os, item) = await CriarOsComServicoAsync();
+
+        var response = await _client.PatchAsJsonAsync(
+            $"/api/ordensdeservico/{os.NumeroOS}/servicos/{item.Id}/status",
+            new AlterarStatusServicoNaOSRequest { Status = StatusExecucaoServico.Iniciado });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var resultado = await response.Content.ReadFromJsonAsync<ServicoItemResponse>();
+        resultado!.Status.Should().Be(StatusExecucaoServico.Iniciado);
+        resultado.IniciadaEm.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task PATCH_AlterarStatusServico_ParaFinalizado_DeveRetornar200ComStatusFinalizado()
+    {
+        var (os, item) = await CriarOsComServicoIniciadoAsync();
+
+        var response = await _client.PatchAsJsonAsync(
+            $"/api/ordensdeservico/{os.NumeroOS}/servicos/{item.Id}/status",
+            new AlterarStatusServicoNaOSRequest { Status = StatusExecucaoServico.Finalizado });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var resultado = await response.Content.ReadFromJsonAsync<ServicoItemResponse>();
+        resultado!.Status.Should().Be(StatusExecucaoServico.Finalizado);
+        resultado.FinalizadaEm.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task PATCH_AlterarStatusServico_StatusInvalido_DeveRetornar400()
+    {
+        var (os, item) = await CriarOsComServicoAsync();
+
+        var response = await _client.PatchAsJsonAsync(
+            $"/api/ordensdeservico/{os.NumeroOS}/servicos/{item.Id}/status",
+            new AlterarStatusServicoNaOSRequest { Status = StatusExecucaoServico.Criada });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task PATCH_AlterarStatusServico_ComOsInexistente_DeveRetornar404()
+    {
+        var response = await _client.PatchAsJsonAsync(
+            $"/api/ordensdeservico/OS-9999-99999/servicos/{Guid.NewGuid()}/status",
+            new AlterarStatusServicoNaOSRequest { Status = StatusExecucaoServico.Iniciado });
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task PATCH_AlterarStatusServico_ComServicoItemInexistente_DeveRetornar404()
+    {
+        var os = await CriarOrdemDeServicoAsync();
+
+        var response = await _client.PatchAsJsonAsync(
+            $"/api/ordensdeservico/{os!.NumeroOS}/servicos/{Guid.NewGuid()}/status",
+            new AlterarStatusServicoNaOSRequest { Status = StatusExecucaoServico.Iniciado });
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task PATCH_AlterarStatusServico_IniciarJaIniciado_DeveRetornar400()
+    {
+        var (os, item) = await CriarOsComServicoIniciadoAsync();
+
+        var response = await _client.PatchAsJsonAsync(
+            $"/api/ordensdeservico/{os.NumeroOS}/servicos/{item.Id}/status",
+            new AlterarStatusServicoNaOSRequest { Status = StatusExecucaoServico.Iniciado });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task PATCH_AlterarStatusServico_FinalizarSemIniciar_DeveRetornar400()
+    {
+        var (os, item) = await CriarOsComServicoAsync();
+
+        var response = await _client.PatchAsJsonAsync(
+            $"/api/ordensdeservico/{os.NumeroOS}/servicos/{item.Id}/status",
+            new AlterarStatusServicoNaOSRequest { Status = StatusExecucaoServico.Finalizado });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    // ── GET /api/ordensdeservico/aging ───────────────────────────────────────
+
+    [Fact]
+    public async Task GET_Aging_SemServicosFinalizados_DeveRetornar200ComListaVazia()
+    {
+        var response = await _client.GetAsync("/api/ordensdeservico/aging");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var resultado = await response.Content.ReadFromJsonAsync<IEnumerable<AgingServicoResponse>>();
+        resultado.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task GET_Aging_ComServicoFinalizado_DeveRetornar200ComDados()
+    {
+        var (os, item) = await CriarOsComServicoIniciadoAsync();
+        await _client.PatchAsJsonAsync(
+            $"/api/ordensdeservico/{os.NumeroOS}/servicos/{item.Id}/status",
+            new AlterarStatusServicoNaOSRequest { Status = StatusExecucaoServico.Finalizado });
+
+        var response = await _client.GetAsync("/api/ordensdeservico/aging");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var resultado = (await response.Content.ReadFromJsonAsync<IEnumerable<AgingServicoResponse>>())!.ToList();
+        resultado.Should().NotBeEmpty();
+        resultado.Should().Contain(r => r.TotalExecucoes >= 1);
+    }
+
+    // ── Helpers adicionais ───────────────────────────────────────────────────
+
+    private async Task<(OrdemDeServicoResponse os, ServicoItemResponse servicoItem)> CriarOsComServicoAsync()
+    {
+        var os = await CriarOrdemDeServicoAsync();
+        var servico = await CadastrarServicoAsync("Servico " + Guid.NewGuid().ToString("N")[..8], 150.00m);
+
+        var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{os!.Id}/servicos",
+            new AdicionarServicoRequest { ServicoId = servico!.Id });
+
+        var osAtualizada = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>();
+        return (osAtualizada!, osAtualizada!.Servicos.First());
+    }
+
+    private async Task<(OrdemDeServicoResponse os, ServicoItemResponse servicoItem)> CriarOsComServicoIniciadoAsync()
+    {
+        var (os, item) = await CriarOsComServicoAsync();
+
+        await _client.PatchAsJsonAsync(
+            $"/api/ordensdeservico/{os.NumeroOS}/servicos/{item.Id}/status",
+            new AlterarStatusServicoNaOSRequest { Status = StatusExecucaoServico.Iniciado });
+
+        return (os, item);
+    }
 }
