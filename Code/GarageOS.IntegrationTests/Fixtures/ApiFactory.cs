@@ -1,4 +1,5 @@
 using GarageOS.Infrastructure.Data;
+using GarageOS.IntegrationTests.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
