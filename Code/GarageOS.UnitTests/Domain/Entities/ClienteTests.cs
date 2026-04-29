@@ -28,7 +28,7 @@ public class ClienteTests
     [InlineData("")]
     [InlineData(" ")]
     [InlineData(null)]
-    public void Construtor_ComNomeVazio_DevelanarArgumentException(string nome)
+    public void Construtor_ComNomeVazio_DevelanarArgumentException(string? nome)
     {
         // Arrange
         var endereco = CriarEndereco();

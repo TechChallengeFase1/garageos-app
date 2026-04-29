@@ -39,7 +39,7 @@ public class DeletarEstoqueUseCaseTests
     {
         // Arrange
         var id = Guid.NewGuid();
-        _repositoryMock.Setup(r => r.ObterPorIdAsync(id)).ReturnsAsync((EstoqueEntity)null);
+        _repositoryMock.Setup(r => r.ObterPorIdAsync(id)).ReturnsAsync((EstoqueEntity?)null);
 
         // Act & Assert
         await Assert.ThrowsAsync<EstoqueNaoEncontradoException>(() => _useCase.ExecutarAsync(id));

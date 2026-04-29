@@ -24,9 +24,9 @@ public class CadastrarClienteUseCaseTests
     {
         // Arrange
         var request = CriarRequest();
-        _repositoryMock.Setup(r => r.ObterPorDocumentoAsync(It.IsAny<string>())).ReturnsAsync((Cliente)null);
-        _repositoryMock.Setup(r => r.ObterPorEmailAsync(It.IsAny<string>())).ReturnsAsync((Cliente)null);
-        _repositoryMock.Setup(r => r.ObterPorTelefoneAsync(It.IsAny<string>())).ReturnsAsync((Cliente)null);
+        _repositoryMock.Setup(r => r.ObterPorDocumentoAsync(It.IsAny<string>())).ReturnsAsync((Cliente?)null);
+        _repositoryMock.Setup(r => r.ObterPorEmailAsync(It.IsAny<string>())).ReturnsAsync((Cliente?)null);
+        _repositoryMock.Setup(r => r.ObterPorTelefoneAsync(It.IsAny<string>())).ReturnsAsync((Cliente?)null);
         _repositoryMock.Setup(r => r.AdicionarAsync(It.IsAny<Cliente>())).Returns(Task.CompletedTask);
 
         // Act
@@ -61,7 +61,7 @@ public class CadastrarClienteUseCaseTests
         // Arrange
         var request = CriarRequest();
         var clienteExistente = CriarCliente();
-        _repositoryMock.Setup(r => r.ObterPorDocumentoAsync(It.IsAny<string>())).ReturnsAsync((Cliente)null);
+        _repositoryMock.Setup(r => r.ObterPorDocumentoAsync(It.IsAny<string>())).ReturnsAsync((Cliente?)null);
         _repositoryMock.Setup(r => r.ObterPorEmailAsync(It.IsAny<string>())).ReturnsAsync(clienteExistente);
 
         // Act & Assert
@@ -75,8 +75,8 @@ public class CadastrarClienteUseCaseTests
         // Arrange
         var request = CriarRequest();
         var clienteExistente = CriarCliente();
-        _repositoryMock.Setup(r => r.ObterPorDocumentoAsync(It.IsAny<string>())).ReturnsAsync((Cliente)null);
-        _repositoryMock.Setup(r => r.ObterPorEmailAsync(It.IsAny<string>())).ReturnsAsync((Cliente)null);
+        _repositoryMock.Setup(r => r.ObterPorDocumentoAsync(It.IsAny<string>())).ReturnsAsync((Cliente?)null);
+        _repositoryMock.Setup(r => r.ObterPorEmailAsync(It.IsAny<string>())).ReturnsAsync((Cliente?)null);
         _repositoryMock.Setup(r => r.ObterPorTelefoneAsync(It.IsAny<string>())).ReturnsAsync(clienteExistente);
 
         // Act & Assert
@@ -89,9 +89,9 @@ public class CadastrarClienteUseCaseTests
     {
         // Arrange
         var request = CriarRequest();
-        _repositoryMock.Setup(r => r.ObterPorDocumentoAsync(It.IsAny<string>())).ReturnsAsync((Cliente)null);
-        _repositoryMock.Setup(r => r.ObterPorEmailAsync(It.IsAny<string>())).ReturnsAsync((Cliente)null);
-        _repositoryMock.Setup(r => r.ObterPorTelefoneAsync(It.IsAny<string>())).ReturnsAsync((Cliente)null);
+        _repositoryMock.Setup(r => r.ObterPorDocumentoAsync(It.IsAny<string>())).ReturnsAsync((Cliente?)null);
+        _repositoryMock.Setup(r => r.ObterPorEmailAsync(It.IsAny<string>())).ReturnsAsync((Cliente?)null);
+        _repositoryMock.Setup(r => r.ObterPorTelefoneAsync(It.IsAny<string>())).ReturnsAsync((Cliente?)null);
         _repositoryMock.Setup(r => r.AdicionarAsync(It.IsAny<Cliente>())).Returns(Task.CompletedTask);
 
         // Act

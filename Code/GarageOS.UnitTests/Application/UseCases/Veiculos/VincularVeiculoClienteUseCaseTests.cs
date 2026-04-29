@@ -45,7 +45,7 @@ public class VincularVeiculoClienteUseCaseTests
         // Arrange
         var veiculoId = Guid.NewGuid();
         var clienteId = Guid.NewGuid();
-        _veiculoRepositoryMock.Setup(r => r.ObterPorIdAsync(veiculoId)).ReturnsAsync((Veiculo)null);
+        _veiculoRepositoryMock.Setup(r => r.ObterPorIdAsync(veiculoId)).ReturnsAsync((Veiculo?)null);
 
         // Act & Assert
         await Assert.ThrowsAsync<VeiculoNaoEncontradoException>(() => _useCase.ExecutarAsync(veiculoId, clienteId));
@@ -60,7 +60,7 @@ public class VincularVeiculoClienteUseCaseTests
         var clienteId = Guid.NewGuid();
         var veiculo = new Veiculo("Toyota", "Corolla", "ABC1234", 2022, 95000.00m);
         _veiculoRepositoryMock.Setup(r => r.ObterPorIdAsync(veiculoId)).ReturnsAsync(veiculo);
-        _clienteRepositoryMock.Setup(r => r.ObterPorIdAsync(clienteId)).ReturnsAsync((Cliente)null);
+        _clienteRepositoryMock.Setup(r => r.ObterPorIdAsync(clienteId)).ReturnsAsync((Cliente?)null);
 
         // Act & Assert
         await Assert.ThrowsAsync<ClienteNaoEncontradoException>(() => _useCase.ExecutarAsync(veiculoId, clienteId));

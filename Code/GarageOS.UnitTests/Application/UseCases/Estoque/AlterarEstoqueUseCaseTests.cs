@@ -50,7 +50,7 @@ public class AlterarEstoqueUseCaseTests
         // Arrange
         var id = Guid.NewGuid();
         var request = new AtualizarEstoqueRequest();
-        _repositoryMock.Setup(r => r.ObterPorIdAsync(id)).ReturnsAsync((EstoqueEntity)null);
+        _repositoryMock.Setup(r => r.ObterPorIdAsync(id)).ReturnsAsync((EstoqueEntity?)null);
 
         // Act & Assert
         await Assert.ThrowsAsync<EstoqueNaoEncontradoException>(() => _useCase.ExecutarAsync(id, request));

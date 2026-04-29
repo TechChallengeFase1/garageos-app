@@ -58,7 +58,7 @@ public class AlterarClienteUseCaseTests
         // Arrange
         var id = Guid.NewGuid();
         var request = new AtualizarClienteRequest();
-        _repositoryMock.Setup(r => r.ObterPorIdAsync(id)).ReturnsAsync((Cliente)null);
+        _repositoryMock.Setup(r => r.ObterPorIdAsync(id)).ReturnsAsync((Cliente?)null);
 
         // Act & Assert
         await Assert.ThrowsAsync<ClienteNaoEncontradoException>(() => _useCase.ExecutarAsync(id, request));
@@ -112,7 +112,7 @@ public class AlterarClienteUseCaseTests
         };
 
         _repositoryMock.Setup(r => r.ObterPorIdAsync(id)).ReturnsAsync(clienteExistente);
-        _repositoryMock.Setup(r => r.ObterPorEmailAsync(It.IsAny<string>())).ReturnsAsync((Cliente)null);
+        _repositoryMock.Setup(r => r.ObterPorEmailAsync(It.IsAny<string>())).ReturnsAsync((Cliente?)null);
         _repositoryMock.Setup(r => r.ObterPorTelefoneAsync(request.Telefone)).ReturnsAsync(outroCliente);
 
         // Act & Assert

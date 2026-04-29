@@ -40,7 +40,7 @@ public class ObterClienteUseCaseTests
     {
         // Arrange
         var id = Guid.NewGuid();
-        _repositoryMock.Setup(r => r.ObterPorIdAsync(id)).ReturnsAsync((Cliente)null);
+        _repositoryMock.Setup(r => r.ObterPorIdAsync(id)).ReturnsAsync((Cliente?)null);
 
         // Act & Assert
         await Assert.ThrowsAsync<ClienteNaoEncontradoException>(() => _useCase.ExecutarAsync(id));

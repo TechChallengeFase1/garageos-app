@@ -38,7 +38,7 @@ public class DeletarVeiculoUseCaseTests
     {
         // Arrange
         var id = Guid.NewGuid();
-        _repositoryMock.Setup(r => r.ObterPorIdAsync(id)).ReturnsAsync((Veiculo)null);
+        _repositoryMock.Setup(r => r.ObterPorIdAsync(id)).ReturnsAsync((Veiculo?)null);
 
         // Act
         var result = await _useCase.ExecutarAsync(id);
@@ -53,7 +53,7 @@ public class DeletarVeiculoUseCaseTests
     {
         // Arrange
         var id = Guid.NewGuid();
-        _repositoryMock.Setup(r => r.ObterPorIdAsync(id)).ReturnsAsync((Veiculo)null);
+        _repositoryMock.Setup(r => r.ObterPorIdAsync(id)).ReturnsAsync((Veiculo?)null);
 
         // Act & Assert
         var result = await _useCase.ExecutarAsync(id);
@@ -68,7 +68,7 @@ public class DeletarVeiculoUseCaseTests
         var veiculo = new Veiculo("Toyota", "Corolla", "ABC1234", 2022, 95000.00m);
         var sequence = _repositoryMock.SetupSequence(r => r.ObterPorIdAsync(id));
         sequence.ReturnsAsync(veiculo);
-        sequence.ReturnsAsync((Veiculo)null);
+        sequence.ReturnsAsync((Veiculo?)null);
         _repositoryMock.Setup(r => r.RemoverAsync(id)).Returns(Task.CompletedTask);
 
         // Act

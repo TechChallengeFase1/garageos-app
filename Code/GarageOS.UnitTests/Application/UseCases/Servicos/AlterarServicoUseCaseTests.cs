@@ -43,7 +43,7 @@ public class AlterarServicoUseCaseTests
         // Arrange
         var id = Guid.NewGuid();
         var request = new AtualizarServicoRequest();
-        _repositoryMock.Setup(r => r.ObterPorIdAsync(id)).ReturnsAsync((Servico)null);
+        _repositoryMock.Setup(r => r.ObterPorIdAsync(id)).ReturnsAsync((Servico?)null);
 
         // Act & Assert
         await Assert.ThrowsAsync<ServicoNaoEncontradoException>(() => _useCase.ExecutarAsync(id, request));
