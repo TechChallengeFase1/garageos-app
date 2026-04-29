@@ -6,7 +6,7 @@ public class OrdemDeServicoEstoque
     public Guid OrdemDeServicoId { get; private set; }
     public Guid EstoqueId { get; private set; }
     public int Quantidade { get; private set; }
-    public Estoque? Estoque { get; private set; }
+    public Estoque? Estoque { get; private set; } // NOSONAR - EF Core usa via reflection
 
     protected OrdemDeServicoEstoque() { }
 

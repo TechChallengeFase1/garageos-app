@@ -4,7 +4,7 @@ namespace GarageOS.Domain.ValueObjects;
 
 public class Documento
 {
-    public string Valor { get; private set; }
+    public string Valor { get; private set; } = null!;
     public TipoDocumento Tipo { get; private set; }
 
     protected Documento() { }

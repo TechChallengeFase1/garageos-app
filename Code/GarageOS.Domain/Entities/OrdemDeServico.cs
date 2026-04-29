@@ -6,15 +6,15 @@ namespace GarageOS.Domain.Entities;
 public class OrdemDeServico
 {
     public Guid Id { get; private set; }
-    public string NumeroOS { get; private set; }
+    public string NumeroOS { get; private set; } = null!;
     public StatusOrdemDeServico Status { get; private set; }
     public DateTime CriadoEm { get; private set; }
     public DateTime? FinalizadaEm { get; private set; }
     public DateTime AtualizadoEm { get; private set; }
     public Guid ClienteId { get; private set; }
     public Guid VeiculoId { get; private set; }
-    public Cliente? Cliente { get; private set; }
-    public Veiculo? Veiculo { get; private set; }
+    public Cliente? Cliente { get; private set; } // NOSONAR - EF Core usa via reflection
+    public Veiculo? Veiculo { get; private set; } // NOSONAR - EF Core usa via reflection
     public List<OrdemDeServicoServico> Servicos { get; private set; } = [];
     public List<OrdemDeServicoEstoque> Estoques { get; private set; } = [];
     public Orcamento? Orcamento { get; private set; }

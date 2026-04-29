@@ -2,13 +2,13 @@
 {
     public class Endereco
     {
-        public string Logradouro { get; private set; }
-        public string Numero { get; private set; }
+        public string Logradouro { get; private set; } = null!;
+        public string Numero { get; private set; } = null!;
         public string? Complemento { get; private set; }
-        public string Bairro { get; private set; }
-        public string Cidade { get; private set; }
-        public string Estado { get; private set; }
-        public string Cep { get; private set; } 
+        public string Bairro { get; private set; } = null!;
+        public string Cidade { get; private set; } = null!;
+        public string Estado { get; private set; } = null!;
+        public string Cep { get; private set; } = null!;
 
         protected Endereco() { }
 

@@ -18,7 +18,7 @@ public class Veiculo
     public decimal PrecoVeiculo { get; set; }
 
     public Guid? ClienteId { get; private set; }
-    public Cliente? Cliente { get; private set; }
+    public Cliente? Cliente { get; private set; } // NOSONAR - EF Core usa via reflection
 
     protected Veiculo() { }
 

@@ -12,7 +12,7 @@ public class OrdemDeServicoServico
     public DateTime CriadoEm { get; private set; }
     public DateTime? IniciadaEm { get; private set; }
     public DateTime? FinalizadaEm { get; private set; }
-    public Servico? Servico { get; private set; }
+    public Servico? Servico { get; private set; } // NOSONAR - EF Core usa via reflection
 
     protected OrdemDeServicoServico() { }
 

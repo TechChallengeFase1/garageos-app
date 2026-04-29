@@ -6,11 +6,11 @@ namespace GarageOS.Domain.Entities
     public class Cliente
     {
         public Guid Id { get; private set; }
-        public string Nome { get; private set; }
-        public Documento Documento { get; private set; } // ← VO já validado
-        public string Email { get; private set; }
-        public string Telefone { get; private set; }
-        public Endereco Endereco { get; private set; } 
+        public string Nome { get; private set; } = null!;
+        public Documento Documento { get; private set; } = null!; // ← VO já validado
+        public string Email { get; private set; } = null!;
+        public string Telefone { get; private set; } = null!;
+        public Endereco Endereco { get; private set; } = null!;
         public bool Ativo { get; private set; }
         public DateTime CriadoEm { get; private set; }
         public DateTime AtualizadoEm { get; private set; }

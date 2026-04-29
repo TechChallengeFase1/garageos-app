@@ -3,7 +3,7 @@ namespace GarageOS.Domain.Entities;
 public class Servico
 {
     public Guid Id { get; private set; }
-    public string NomeServico { get; private set; }
+    public string NomeServico { get; private set; } = null!;
     public decimal Preco { get; private set; }
 
     // Construtor protegido para EF Core

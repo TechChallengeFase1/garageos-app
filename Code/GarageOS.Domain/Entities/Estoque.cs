@@ -5,12 +5,12 @@ namespace GarageOS.Domain.Entities;
 public class Estoque
 {
     public Guid Id { get; private set; }
-    public string Nome { get; private set; }
+    public string Nome { get; private set; } = null!;
     public int Quantidade { get; private set; }
     public decimal Valor { get; private set; }
     public DateTime DataEntrada { get; private set; }
     public DateTime? DataSaida { get; private set; }
-    public string Fornecedor { get; private set; }
+    public string Fornecedor { get; private set; } = null!;
     public StatusEstoque Status { get; private set; }
 
     protected Estoque() { }
