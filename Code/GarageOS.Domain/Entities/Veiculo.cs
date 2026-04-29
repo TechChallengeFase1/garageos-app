@@ -2,13 +2,10 @@ using System.Text.RegularExpressions;
 
 namespace GarageOS.Domain.Entities;
 
-
-public class Veiculo
+public partial class Veiculo
 {
-    private static readonly Regex PlacaRegex = new(
-        @"^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$",
-        RegexOptions.Compiled
-    );
+    [GeneratedRegex(@"^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$")]
+    private static partial Regex PlacaRegex();
 
     public Guid Id { get; set; }
     public string MarcaVeiculo { get; set; } = string.Empty;
@@ -97,7 +94,7 @@ public class Veiculo
 
         placa = placa.Replace("-", "").ToUpper().Trim();
 
-        return PlacaRegex.IsMatch(placa);
+        return PlacaRegex().IsMatch(placa);
     }
 
    public void VincularCliente(Guid clienteId)

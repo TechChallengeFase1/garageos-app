@@ -9,6 +9,7 @@ namespace GarageOS.Api.Middlewares;
 public class ExceptionMiddleware
 {
     private const string MsgNaoEncontrado = "Não encontrado: {Message}";
+    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionMiddleware> _logger;
 
@@ -89,10 +90,7 @@ public class ExceptionMiddleware
             timestamp = BrasiliaTime.Agora
         };
 
-        var json = JsonSerializer.Serialize(resposta, new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        });
+        var json = JsonSerializer.Serialize(resposta, JsonOptions);
 
         await context.Response.WriteAsync(json);
     }

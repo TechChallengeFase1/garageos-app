@@ -35,7 +35,7 @@ public class ClienteTests
 
         // Act & Assert
         var ex = Assert.Throws<ArgumentException>(() =>
-            new Cliente(nome, "00000000191", "joao@email.com", "11999999999", endereco));
+            new Cliente(nome!, "00000000191", "joao@email.com", "11999999999", endereco));
         ex.Message.Should().Contain("Nome");
     }
 

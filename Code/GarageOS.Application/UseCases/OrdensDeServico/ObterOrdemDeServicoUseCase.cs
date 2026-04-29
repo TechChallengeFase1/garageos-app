@@ -23,7 +23,7 @@ public class ObterOrdemDeServicoUseCase
         return MapearParaResponse(ordemDeServico);
     }
 
-    private OrdemDeServicoResponse MapearParaResponse(OrdemDeServico ordemDeServico)
+    private static OrdemDeServicoResponse MapearParaResponse(OrdemDeServico ordemDeServico)
     {
         return new OrdemDeServicoResponse
         {

@@ -10,6 +10,12 @@ internal static class Dados
     private static int _cnpjBase = 10_000_000;
     private static int _placaSeq = 0;
 
+    private static readonly int[] PesosCpf1 = { 10, 9, 8, 7, 6, 5, 4, 3, 2 };
+    private static readonly int[] PesosCpf2 = { 11, 10, 9, 8, 7, 6, 5, 4, 3, 2 };
+    private static readonly int[] SufixoCnpj = { 0, 0, 0, 1 };
+    private static readonly int[] PesosCnpj1 = { 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2 };
+    private static readonly int[] PesosCnpj2 = { 6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2 };
+
     public static string Cpf()
     {
         while (true)
@@ -17,8 +23,8 @@ internal static class Dados
             var n = Interlocked.Increment(ref _cpfBase);
             var d = n.ToString().PadLeft(9, '0').Select(c => c - '0').ToArray();
             if (d.Distinct().Count() == 1) continue;
-            var d1 = Digito(d, new[] { 10, 9, 8, 7, 6, 5, 4, 3, 2 });
-            var d2 = Digito(d.Append(d1).ToArray(), new[] { 11, 10, 9, 8, 7, 6, 5, 4, 3, 2 });
+            var d1 = Digito(d, PesosCpf1);
+            var d2 = Digito(d.Append(d1).ToArray(), PesosCpf2);
             return string.Concat(d) + d1 + d2;
         }
     }
@@ -30,9 +36,9 @@ internal static class Dados
             var n = Interlocked.Increment(ref _cnpjBase);
             var b = n.ToString().PadLeft(8, '0').Select(c => c - '0').ToArray();
             if (b.Distinct().Count() == 1) continue;
-            var d = b.Concat(new[] { 0, 0, 0, 1 }).ToArray();
-            var d1 = Digito(d, new[] { 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2 });
-            var d2 = Digito(d.Append(d1).ToArray(), new[] { 6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2 });
+            var d = b.Concat(SufixoCnpj).ToArray();
+            var d1 = Digito(d, PesosCnpj1);
+            var d2 = Digito(d.Append(d1).ToArray(), PesosCnpj2);
             return string.Concat(d) + d1 + d2;
         }
     }
