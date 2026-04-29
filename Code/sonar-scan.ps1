@@ -150,18 +150,21 @@ Write-Host ""
 # ============================================
 
 Write-Info "Iniciando SonarScanner..."
-$scannerArgs = @(
-    "begin",
-    "/k:$($env:SONAR_PROJECT_KEY)",
-    "/d:sonar.host.url=$($env:SONAR_HOST_URL)",
-    "/d:sonar.token=$($env:SONAR_TOKEN)",
-    '/d:sonar.sources="GarageOS.Domain,GarageOS.Application,GarageOS.Infrastructure,GarageOS.Api"',
-    '/d:sonar.tests="GarageOS.UnitTests,GarageOS.IntegrationTests"',
-    '/d:sonar.exclusions="**/Migrations/**,**/*Designer.cs,**/GarageOSDbContextModelSnapshot.cs,**/.gitkeep,**/*.md,**/bin/**,**/obj/**,**/.sonarqube/**"',
-    '/d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml"'
-)
 
-& dotnet sonarscanner @scannerArgs
+$exclusions = "**/Migrations/**,**/*Designer.cs,**/GarageOSDbContextModelSnapshot.cs,**/.gitkeep,**/*.md,**/bin/**,**/obj/**,**/.sonarqube/**"
+$sources = "GarageOS.Domain,GarageOS.Application,GarageOS.Infrastructure,GarageOS.Api"
+$tests = "GarageOS.UnitTests,GarageOS.IntegrationTests"
+$coverage = "**/TestResults/**/coverage.opencover.xml"
+
+dotnet sonarscanner begin `
+  /k:"$env:SONAR_PROJECT_KEY" `
+  /d:sonar.host.url="$env:SONAR_HOST_URL" `
+  /d:sonar.token="$env:SONAR_TOKEN" `
+  /d:sonar.sources="$sources" `
+  /d:sonar.tests="$tests" `
+  /d:sonar.exclusions="$exclusions" `
+  /d:sonar.cs.opencover.reportsPaths="$coverage"
+
 if ($LASTEXITCODE -ne 0) {
     Write-Error-Custom "Erro ao iniciar SonarScanner"
     exit 1
