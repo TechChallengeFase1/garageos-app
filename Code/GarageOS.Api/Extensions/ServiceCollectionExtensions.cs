@@ -16,8 +16,10 @@ using System.Text;
 
 namespace GarageOS.Api.Extensions;
 
+/// <summary>Extensões de configuração de serviços da aplicação GarageOS</summary>
 public static class ServiceCollectionExtensions
 {
+    /// <summary>Registra a infraestrutura: DbContext e repositórios</summary>
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -37,6 +39,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
+    /// <summary>Registra todos os use cases e validators da camada de aplicação</summary>
     public static IServiceCollection AddApplicationServices(
         this IServiceCollection services)
     {
@@ -81,6 +84,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
+    /// <summary>Registra os middlewares da aplicação GarageOS</summary>
     public static IApplicationBuilder UseGarageOSMiddlewares(
         this IApplicationBuilder app)
     {
@@ -89,6 +93,7 @@ public static class ServiceCollectionExtensions
         return app;
     }
 
+    /// <summary>Configura a autenticação JWT com validação de token</summary>
     public static IServiceCollection AddJwtAuthentication(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -124,6 +129,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
+    /// <summary>Configura o Swagger com suporte a autenticação JWT</summary>
     public static IServiceCollection AddSwaggerWithJwt(
         this IServiceCollection services)
     {

@@ -10,6 +10,7 @@ namespace GarageOS.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
+/// <summary>Controller de gerenciamento de estoque</summary>
 public class EstoquesController : ControllerBase
 {
     private readonly ListarEstoquesUseCase _listarEstoquesUseCase;
@@ -18,6 +19,7 @@ public class EstoquesController : ControllerBase
     private readonly AlterarEstoqueUseCase _alterarEstoqueUseCase;
     private readonly DeletarEstoqueUseCase _deletarEstoqueUseCase;
 
+    /// <summary>Inicializa o controller com os use cases de estoque</summary>
     public EstoquesController(
         ListarEstoquesUseCase listarEstoquesUseCase,
         CadastrarEstoqueUseCase cadastrarEstoqueUseCase,

@@ -9,6 +9,7 @@ namespace GarageOS.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+/// <summary>Controller de gerenciamento de ordens de serviço</summary>
 public class OrdensDeServicoController : ControllerBase
 {
     private readonly CriarOrdemDeServicoUseCase _criarUseCase;
@@ -24,6 +25,7 @@ public class OrdensDeServicoController : ControllerBase
     private readonly AlterarStatusServicoNaOSUseCase _alterarStatusServicoUseCase;
     private readonly CalcularAgingServicosUseCase _calcularAgingUseCase;
 
+    /// <summary>Inicializa o controller com os use cases de ordens de serviço</summary>
     public OrdensDeServicoController(
         CriarOrdemDeServicoUseCase criarUseCase,
         ListarOrdensDeServicoUseCase listarUseCase,

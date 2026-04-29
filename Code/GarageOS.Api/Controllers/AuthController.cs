@@ -10,10 +10,12 @@ namespace GarageOS.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+/// <summary>Controller de autenticação JWT</summary>
 public class AuthController : ControllerBase
 {
     private readonly IConfiguration _configuration;
 
+    /// <summary>Inicializa o controller com configurações da aplicação</summary>
     public AuthController(IConfiguration configuration)
     {
         _configuration = configuration;

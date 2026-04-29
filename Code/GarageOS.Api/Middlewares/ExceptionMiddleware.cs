@@ -5,17 +5,21 @@ using GarageOS.Domain.Utils;
 
 namespace GarageOS.Api.Middlewares;
 
+/// <summary>Middleware global de tratamento de exceções</summary>
 public class ExceptionMiddleware
 {
+    private const string MsgNaoEncontrado = "Não encontrado: {Message}";
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionMiddleware> _logger;
 
+    /// <summary>Inicializa o middleware com o delegate e logger</summary>
     public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
     {
         _next = next;
         _logger = logger;
     }
 
+    /// <summary>Processa a requisição e captura exceções não tratadas</summary>
     public async Task InvokeAsync(HttpContext context)
     {
         try
@@ -29,17 +33,17 @@ public class ExceptionMiddleware
         }
         catch (ServicoNaoEncontradoException ex)
         {
-            _logger.LogWarning(ex, "Não encontrado: {Message}", ex.Message);
+            _logger.LogWarning(ex, MsgNaoEncontrado, ex.Message);
             await EscreverRespostaAsync(context, HttpStatusCode.NotFound, ex.Message);
         }
         catch (ClienteNaoEncontradoException ex)
         {
-            _logger.LogWarning(ex, "Não encontrado: {Message}", ex.Message);
+            _logger.LogWarning(ex, MsgNaoEncontrado, ex.Message);
             await EscreverRespostaAsync(context, HttpStatusCode.NotFound, ex.Message);
         }
         catch (EstoqueNaoEncontradoException ex)
         {
-            _logger.LogWarning(ex, "Não encontrado: {Message}", ex.Message);
+            _logger.LogWarning(ex, MsgNaoEncontrado, ex.Message);
             await EscreverRespostaAsync(context, HttpStatusCode.NotFound, ex.Message);
         }
         catch (ClienteJaCadastradoException ex)
@@ -49,12 +53,12 @@ public class ExceptionMiddleware
         }
         catch (VeiculoNaoEncontradoException ex)
         {
-            _logger.LogWarning(ex, "Não encontrado: {Message}", ex.Message);
+            _logger.LogWarning(ex, MsgNaoEncontrado, ex.Message);
             await EscreverRespostaAsync(context, HttpStatusCode.NotFound, ex.Message);
         }
         catch (OrdemDeServicoNaoEncontradaException ex)
         {
-            _logger.LogWarning(ex, "Não encontrado: {Message}", ex.Message);
+            _logger.LogWarning(ex, MsgNaoEncontrado, ex.Message);
             await EscreverRespostaAsync(context, HttpStatusCode.NotFound, ex.Message);
         }
         catch (OrdemDeServicoStatusInvalidoException ex)

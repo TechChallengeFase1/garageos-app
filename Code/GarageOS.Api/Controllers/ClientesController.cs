@@ -10,6 +10,7 @@ namespace GarageOS.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
+/// <summary>Controller de gerenciamento de clientes</summary>
 public class ClientesController : ControllerBase
 {
     private readonly ListarClientesUseCase _listarClientesUseCase;
@@ -18,6 +19,7 @@ public class ClientesController : ControllerBase
     private readonly AlterarClienteUseCase _alterarClienteUseCase;
     private readonly DeletarClienteUseCase _deletarClienteUseCase;
 
+    /// <summary>Inicializa o controller com os use cases de clientes</summary>
     public ClientesController(
         ListarClientesUseCase listarClientesUseCase,
         CadastrarClienteUseCase cadastrarClienteUseCase,

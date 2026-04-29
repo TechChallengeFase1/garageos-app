@@ -30,7 +30,11 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-app.Run();
+await app.RunAsync();
 
 // Necessário para WebApplicationFactory nos testes de integração
-public partial class Program { }
+public partial class Program
+{
+    /// <summary>Construtor protegido para uso pelo WebApplicationFactory nos testes</summary>
+    protected Program() { }
+}

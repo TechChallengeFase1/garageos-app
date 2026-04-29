@@ -10,6 +10,7 @@ namespace GarageOS.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
+/// <summary>Controller de gerenciamento de veículos</summary>
 public class VeiculosController : ControllerBase
 {
     private readonly CriarVeiculoValidator _validator;
@@ -20,6 +21,7 @@ public class VeiculosController : ControllerBase
     private readonly VincularVeiculoClienteUseCase _vincularVeiculoClienteUseCase;
     private readonly DeletarVeiculoUseCase _deletarVeiculoUseCase;
 
+    /// <summary>Inicializa o controller com os use cases de veículos</summary>
     public VeiculosController(
         CriarVeiculoValidator validator,
         ListarVeiculosUseCase listarVeiculosUseCase,
