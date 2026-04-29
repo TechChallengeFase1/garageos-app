@@ -8,9 +8,9 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace GarageOS.Api.Controllers;
 
+/// <summary>Controller de autenticação JWT</summary>
 [ApiController]
 [Route("api/[controller]")]
-/// <summary>Controller de autenticação JWT</summary>
 public class AuthController : ControllerBase
 {
     private readonly IConfiguration _configuration;

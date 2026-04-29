@@ -7,9 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace GarageOS.Api.Controllers;
 
+/// <summary>Controller de gerenciamento de ordens de serviço</summary>
 [ApiController]
 [Route("api/[controller]")]
-/// <summary>Controller de gerenciamento de ordens de serviço</summary>
 public class OrdensDeServicoController : ControllerBase
 {
     private readonly CriarOrdemDeServicoUseCase _criarUseCase;

@@ -7,10 +7,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace GarageOS.Api.Controllers;
 
+/// <summary>Controller de gerenciamento de estoque</summary>
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
-/// <summary>Controller de gerenciamento de estoque</summary>
 public class EstoquesController : ControllerBase
 {
     private readonly ListarEstoquesUseCase _listarEstoquesUseCase;

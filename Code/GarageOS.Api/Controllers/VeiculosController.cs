@@ -7,10 +7,10 @@ using GarageOS.Application.Validators.Veiculos;
 
 namespace GarageOS.Api.Controllers;
 
+/// <summary>Controller de gerenciamento de veículos</summary>
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
-/// <summary>Controller de gerenciamento de veículos</summary>
 public class VeiculosController : ControllerBase
 {
     private readonly CriarVeiculoValidator _validator;

@@ -33,6 +33,7 @@ app.MapControllers();
 await app.RunAsync();
 
 // Necessário para WebApplicationFactory nos testes de integração
+/// <summary>Entry point da aplicação GarageOS</summary>
 public partial class Program
 {
     /// <summary>Construtor protegido para uso pelo WebApplicationFactory nos testes</summary>

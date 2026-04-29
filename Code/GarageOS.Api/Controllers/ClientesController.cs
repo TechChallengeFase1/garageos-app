@@ -7,10 +7,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace GarageOS.Api.Controllers;
 
+/// <summary>Controller de gerenciamento de clientes</summary>
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
-/// <summary>Controller de gerenciamento de clientes</summary>
 public class ClientesController : ControllerBase
 {
     private readonly ListarClientesUseCase _listarClientesUseCase;

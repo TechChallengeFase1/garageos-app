@@ -7,10 +7,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace GarageOS.Api.Controllers;
 
+/// <summary>Controller de gerenciamento de serviços</summary>
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
-/// <summary>Controller de gerenciamento de serviços</summary>
 public class ServicosController : ControllerBase
 {
     private readonly ListarServicosUseCase _listarServicosUseCase;
