@@ -39,8 +39,8 @@ public class AlterarClienteUseCaseTests
         };
 
         _repositoryMock.Setup(r => r.ObterPorIdAsync(id)).ReturnsAsync(clienteExistente);
-        _repositoryMock.Setup(r => r.ObterPorEmailAsync(It.IsAny<string>())).ReturnsAsync((Cliente)null);
-        _repositoryMock.Setup(r => r.ObterPorTelefoneAsync(It.IsAny<string>())).ReturnsAsync((Cliente)null);
+        _repositoryMock.Setup(r => r.ObterPorEmailAsync(It.IsAny<string>())).ReturnsAsync((Cliente?)null);
+        _repositoryMock.Setup(r => r.ObterPorTelefoneAsync(It.IsAny<string>())).ReturnsAsync((Cliente?)null);
         _repositoryMock.Setup(r => r.AtualizarAsync(It.IsAny<Cliente>())).Returns(Task.CompletedTask);
 
         // Act

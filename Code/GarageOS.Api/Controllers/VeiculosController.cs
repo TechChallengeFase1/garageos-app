@@ -108,8 +108,7 @@ public class VeiculosController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Cadastrar([FromBody] CriarVeiculoRequest request)
     {
-        var validator = new CriarVeiculoValidator();
-        var validation = await validator.ValidateAsync(request);
+        var validation = await _validator.ValidateAsync(request);
 
         if (!validation.IsValid)
             return BadRequest(validation.Errors.Select(e => e.ErrorMessage));

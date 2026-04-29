@@ -6,7 +6,7 @@ public interface IVeiculoRepository
 {
     Task<IEnumerable<Veiculo>> ListarTodosAsync();
     Task<Veiculo?> ObterPorIdAsync(Guid id);
-    Task AdicionarAsync(Veiculo servico);
-    Task AtualizarAsync(Veiculo servico);
+    Task AdicionarAsync(Veiculo veiculo);
+    Task AtualizarAsync(Veiculo veiculo);
     Task RemoverAsync(Guid id);
 }

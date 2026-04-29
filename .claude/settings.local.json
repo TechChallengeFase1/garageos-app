@@ -28,7 +28,9 @@
       "Bash(./sonar-scan.sh)",
       "Bash(dotnet add *)",
       "Bash(dotnet restore *)",
-      "Bash(claude mcp *)"
+      "Bash(claude mcp *)",
+      "mcp__sonarqube__search_my_sonarqube_projects",
+      "mcp__sonarqube__search_sonar_issues_in_projects"
     ]
   }
 }
