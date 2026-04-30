@@ -52,27 +52,26 @@ cp .env.example .env
 Variáveis principais (sugestão de valores para avaliação):
 
 ```env
-# Banco principal
-POSTGRES_USER=garageos
-POSTGRES_PASSWORD=garageos
-POSTGRES_DB=garageos
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=dtsx        
+POSTGRES_DB=GarageOS
 
-# PgAdmin
-[email protected]
-PGADMIN_DEFAULT_PASSWORD=admin
+PGADMIN_EMAIL=admin@garageos.com
+PGADMIN_DEFAULT_PASSWORD=dtsx
 
-# JWT
-JWT_SECRET_KEY=uma-chave-secreta-com-no-minimo-32-caracteres
-JWT_ISSUER=GarageOS
-JWT_AUDIENCE=GarageOS
+JWT_SECRET_KEY=GarageOS@SuperSecretKey#2026!XpTo
+JWT_ISSUER=GarageOS.Api
+JWT_AUDIENCE=GarageOS.Client
 
-# Admin (login inicial da API)
 ADMIN_USERNAME=admin
-ADMIN_PASSWORD=admin
+ADMIN_PASSWORD=admin@123
 
-# SonarQube DB
 SONAR_DB_USER=sonar
-SONAR_DB_PASSWORD=sonar
+SONAR_DB_PASSWORD=sonarsenha123
+
+SONAR_TOKEN=sqa_97ad0979eff1583c655df83642233cfd18e1b69f // seu token do SonarQube, obtenha em: http://localhost:9000/account/security
+SONAR_HOST_URL=http://localhost:9000
+SONAR_PROJECT_KEY=GarageOSToken // chave do projeto no SonarQube, geralmente o nome do projeto, por exemplo: GarageOSProject
 ```
 
 ### 2. Subir os containers
@@ -148,7 +147,6 @@ GarageOS/
 │   ├── GarageOS.IntegrationTests/
 │   ├── Postman/                  # Coleção pronta para importar
 │   ├── sonar-scan.sh / .ps1      # Scripts de análise SonarQube
-│   └── feats/                    # Documentação por feature
 ├── Documentação/
 │   └── Fase 1/                   # Domain Storytelling, enunciado, SonarQube
 ├── Dockerfile
@@ -187,16 +185,6 @@ cd Code; ./sonar-scan.ps1
 O resultado aparece em <http://localhost:9000>. Pré-requisitos: `dotnet-sonarscanner` instalado como ferramenta global e `SONAR_TOKEN` preenchido no `.env`.
 
 Mais detalhes em [Documentação/Fase 1/SONARQUBE.md](Documentação/Fase%201/SONARQUBE.md).
-
----
-
-## Documentação adicional
-
-- [Enunciado do desafio](Documentação/Fase%201/Fase%201%20-%20Tech%20Challenge.pdf)
-- [Domain Storytelling](Documentação/Fase%201/Domain%20Storytelling)
-- [Arquitetura em camadas](Code/README.md)
-- [Feature: Ordem de Serviço](Code/feats/OrdemDeServico.md)
-- [Feature: Testes de integração](Code/feats/Testes_integração.md)
 
 ---
 
