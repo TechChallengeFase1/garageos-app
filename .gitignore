@@ -78,3 +78,11 @@ appsettings.Development.json
 
 # MCP config (contém tokens — não versionar)
 .mcp.json
+.mcp.json.*
+
+# Editor / IDE
+.vscode/
+.idea/
+
+# SonarLint (configuração local do analisador)
+.sonarlint/
