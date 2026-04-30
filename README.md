@@ -49,7 +49,7 @@ Na raiz do projeto, copie o template e preencha:
 cp .env.example .env
 ```
 
-Variáveis principais (sugestão de valores para avaliação):
+Variáveis principais (valores reais para avaliação):
 
 ```env
 POSTGRES_USER=postgres
