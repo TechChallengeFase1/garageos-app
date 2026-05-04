@@ -100,20 +100,26 @@ Esse comando sobe:
 | `garageos-sonarqube` | 9000 | Análise de qualidade (opcional) |
 | `garageos-sonar-db` | — | Banco do Sonar |
 
-> A API roda **migrations automaticamente** no startup, não é preciso aplicar nada manualmente.
+### 3. Executar as Migrations
 
-### 3. Acessar
+Na raiz do projeto:
+
+```bash
+dotnet ef database update --project Code/GarageOS.Infrastructure --startup-project Code/GarageOS.Api
+```
+
+### 4. Acessar
 
 - **API**: <http://localhost:8080>
 - **Swagger** (documentação interativa): <http://localhost:8080/swagger>
 - **PgAdmin**: <http://localhost:5050>
 - **SonarQube**: <http://localhost:9000> (login inicial: `admin` / `admin`)
 
-### 4. Login
+### 5. Login
 
 `POST /api/Auth/login` com o `ADMIN_USERNAME` e `ADMIN_PASSWORD` definidos no `.env`. O token JWT retornado deve ser usado no header `Authorization: Bearer <token>` para as rotas protegidas.
 
-### 5. Parar os containers
+### 6. Parar os containers
 
 ```bash
 docker compose down
