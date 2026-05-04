@@ -35,6 +35,14 @@ Entregar uma API REST robusta que cubra a operação ponta a ponta de uma oficin
 
 Arquitetura: **Clean Architecture** com separação em `Domain`, `Application`, `Infrastructure` e `Api` — detalhes em [Code/README.md](Code/README.md).
 
+### Por que PostgreSQL?
+
+Para este projeto, optou-se pela utilização do PostgreSQL como sistema gerenciador de banco de dados. A escolha foi motivada principalmente por ser uma solução open source e gratuita, permitindo reduzir custos de licenciamento sem comprometer desempenho, segurança ou confiabilidade. Trata-se de uma tecnologia amplamente consolidada no mercado, com excelente documentação e forte suporte da comunidade.
+
+Outro fator relevante foi a experiência prévia da equipe com bancos de dados relacionais e com o próprio PostgreSQL, o que contribuiu para uma curva de aprendizado menor, maior produtividade no desenvolvimento e mais segurança na implementação.
+
+O PostgreSQL também se encaixa diretamente nas necessidades do sistema: o projeto exige diversas relações entre entidades como clientes, veículos, ordens de serviço, serviços executados, peças utilizadas, insumos e controle de tempo de execução. O modelo relacional facilita a organização dos dados, garante integridade referencial e permite consultas estruturadas para acompanhamento operacional e geração de relatórios. Dessa forma, o PostgreSQL apresentou-se como uma solução adequada tanto do ponto de vista técnico quanto estratégico.
+
 ---
 
 ## Como rodar (Docker)
