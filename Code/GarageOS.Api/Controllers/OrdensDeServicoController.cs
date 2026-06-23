@@ -332,6 +332,7 @@ public class OrdensDeServicoController : ControllerBase
 
     /// <summary>Registra a resposta do cliente ao orçamento (aprovação ou rejeição)</summary>
     /// <remarks>
+    /// Endpoint PÚBLICO (sem autenticação) que permite qualquer pessoa alterar o status do orçamento de uma Ordem de Serviço para aprovado ou rejeitado.
     /// Ao aprovar: o status da OS avança para "EmExecucao" e as peças cadastradas na OS
     /// têm suas quantidades decrementadas no estoque.
     /// Ao reprovar: o orçamento é rejeitado e o status da OS vai para "Finalizada".
@@ -343,7 +344,6 @@ public class OrdensDeServicoController : ControllerBase
     /// <response code="400">Estoque insuficiente para alguma peça</response>
     /// <response code="404">Ordem de Serviço ou orçamento não encontrado</response>
     /// <response code="401">Não autorizado - token JWT ausente ou inválido</response>
-    [Authorize]
     [HttpPatch("{id:guid}/orcamento/resposta")]
     [ProducesResponseType(typeof(OrdemDeServicoResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

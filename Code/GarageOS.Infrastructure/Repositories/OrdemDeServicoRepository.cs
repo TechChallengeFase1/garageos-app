@@ -1,4 +1,5 @@
 using GarageOS.Domain.Entities;
+using GarageOS.Domain.Enums;
 using GarageOS.Domain.Repositories;
 using GarageOS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -18,11 +19,19 @@ public class OrdemDeServicoRepository : IOrdemDeServicoRepository
     {
         return await _context.OrdensDeServico
             .AsNoTracking()
+            .Where(x => x.Status != StatusOrdemDeServico.Finalizada
+                 && x.Status != StatusOrdemDeServico.Entregue)
             .Include(x => x.Servicos)
             .ThenInclude(x => x.Servico)
             .Include(x => x.Estoques)
             .ThenInclude(x => x.Estoque)
             .Include(x => x.Orcamento)
+            .OrderBy(x => x.Status == StatusOrdemDeServico.EmExecucao ? 0
+                    : x.Status == StatusOrdemDeServico.AguardandoAprovacao ? 1
+                    : x.Status == StatusOrdemDeServico.EmDiagnostico ? 2
+                    : x.Status == StatusOrdemDeServico.Recebida ? 3
+                    : 4)
+            .ThenBy(x => x.CriadoEm)
             .ToListAsync();
     }
 
