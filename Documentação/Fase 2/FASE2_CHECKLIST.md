@@ -1,14 +1,11 @@
 # GarageOS — Checklist Fase 2
 
-> Análise gerada em 2026-06-23, branch `analise-fase-2`.
+> Análise gerada em 2026-06-23, atualizada após merge da branch de evolução em `analise-fase-2`.
 > A coluna **"Como resolver"** indica o caminho de implementação para cada item pendente.
 
 ---
 
 ## 1. Evolução da Aplicação
-
-> A branch de código já está em desenvolvimento por outro membro da equipe.
-> Itens marcados como ❌ refletem o estado atual desta branch (`analise-fase-2`).
 
 ### 1.1 Qualidade de Código
 
@@ -23,12 +20,12 @@
 
 | Requisito | Status | Evidência | Como resolver |
 |---|---|---|---|
-| Abertura de OS recebendo cliente, veículo, serviços e peças em **um único request** | ❌ | `POST /api/OrdensDeServico` recebe apenas `ClienteId` + `VeiculoId`. Serviços e peças são adicionados por endpoints separados | Criar novo DTO unificado `AbrirOrdemDeServicoRequest` e use case que orquestre criação + vinculação de serviços e peças |
-| Consulta de status da OS | ✅ | `GET /api/OrdensDeServico/acompanhar/{numeroOS}` (público) + `GET /api/OrdensDeServico/{id}` |  |
-| Aprovação/recusa de orçamento por notificação externa | ✅ | `PATCH /api/OrdensDeServico/{id}/orcamento/resposta` — endpoint público sem autenticação |  |
-| Listagem com ordenação: EmExecucao > AguardandoAprovacao > EmDiagnostico > Recebida | ❌ | `GET /api/OrdensDeServico` retorna lista simples sem ordenação por prioridade de status | Ajustar `ListarOrdensDeServicoUseCase` para ordenar por peso de status + `CriadoEm ASC` |
-| Listagem excluindo OS Finalizadas e Entregues | ❌ | Listagem atual inclui todos os status | Adicionar filtro no repositório/use case: `WHERE status NOT IN (Finalizada, Entregue)` |
-| Atualização de status da OS via ferramenta externa (e-mail) | ❌ | Não existe nenhum webhook, handler de e-mail ou integração com serviço externo | Implementar webhook público (ex: integração com SendGrid Inbound Parse ou Mailgun) ou endpoint de callback com token de validação |
+| Abertura de OS recebendo cliente, veículo, serviços e peças em **um único request** | ❌ | `POST /api/OrdensDeServico` ainda recebe apenas `ClienteId` + `VeiculoId`. Serviços e peças continuam sendo adicionados por endpoints separados | Criar DTO unificado `AbrirOrdemDeServicoRequest` com listas de serviços e peças, e use case que orquestre criação + vinculação em uma única transação |
+| Consulta de status da OS | ✅ | `GET /api/OrdensDeServico/acompanhar/{numeroOS}` (público) + `GET /api/OrdensDeServico/{id}` | — |
+| Aprovação/recusa de orçamento por notificação externa | ✅ | `PATCH /api/OrdensDeServico/{id}/orcamento/resposta` — endpoint público sem autenticação | — |
+| Listagem com ordenação: EmExecucao > AguardandoAprovacao > EmDiagnostico > Recebida | ✅ | Implementado no `OrdemDeServicoRepository.ListarTodosAsync()` via `OrderBy` com peso numérico por status, `ThenBy(CriadoEm)` | — |
+| Listagem excluindo OS Finalizadas e Entregues | ✅ | `.Where(x => x.Status != Finalizada && x.Status != Entregue)` no repositório | — |
+| Atualização de status da OS via ferramenta externa (e-mail) | ❌ | Nenhuma integração com e-mail (SendGrid, Mailgun, SMTP) ou webhook genérico encontrado | Implementar endpoint de callback público com token de validação + integração com serviço de e-mail (ex: SendGrid Inbound Parse) |
 
 ---
 
@@ -114,7 +111,7 @@
 | Área | Concluído | Pendente | % |
 |---|---|---|---|
 | Evolução da Aplicação — Qualidade | 4 | 0 | 100% |
-| Evolução da Aplicação — APIs | 2 | 4 | 33% |
+| Evolução da Aplicação — APIs | 4 | 2 | 67% |
 | Docker | 2 | 4 | 33% |
 | Kubernetes | 0 | 9 | 0% |
 | Terraform (IaC) | 0 | 5 | 0% |
@@ -126,11 +123,12 @@
 ## 6. Ordem de Execução Recomendada
 
 ```
-1. [CÓDIGO]       Merge da branch do dev com as evoluções de API
-2. [DOCKER]       Dockerfile não-root + .dockerignore + healthcheck no docker-compose
-3. [K8S]          Criar manifests em /k8s (namespace → secret/configmap → postgres → api → hpa)
-4. [TERRAFORM]    Criar /infra com provider kind + cluster
-5. [CI/CD]        Criar .github/workflows/ci-cd.yml
-6. [README]       Atualizar documentação com arquitetura, K8s, Terraform e link do vídeo
-7. [VÍDEO]        Gravar demonstração do ambiente completo (≤ 15 min)
+1. [CÓDIGO]       Endpoint de abertura de OS com payload único (cliente + veículo + serviços + peças)
+2. [CÓDIGO]       Atualização de status via e-mail (webhook/integração com serviço externo)
+3. [DOCKER]       Dockerfile não-root + .dockerignore + healthcheck no docker-compose
+4. [K8S]          Criar manifests em /k8s (namespace → secret/configmap → postgres → api → hpa)
+5. [TERRAFORM]    Criar /infra com provider kind + cluster
+6. [CI/CD]        Criar .github/workflows/ci-cd.yml
+7. [README]       Atualizar documentação com arquitetura, K8s, Terraform e link do vídeo
+8. [VÍDEO]        Gravar demonstração do ambiente completo (≤ 15 min)
 ```
