@@ -25,7 +25,7 @@
 | Aprovação/recusa de orçamento por notificação externa | ✅ | `PATCH /api/OrdensDeServico/{id}/orcamento/resposta` — endpoint público sem autenticação | — |
 | Listagem com ordenação: EmExecucao > AguardandoAprovacao > EmDiagnostico > Recebida | ✅ | Implementado no `OrdemDeServicoRepository.ListarTodosAsync()` via `OrderBy` com peso numérico por status, `ThenBy(CriadoEm)` | — |
 | Listagem excluindo OS Finalizadas e Entregues | ✅ | `.Where(x => x.Status != Finalizada && x.Status != Entregue)` no repositório | — |
-| Atualização de status da OS via ferramenta externa (e-mail) | ❌ | Nenhuma integração com e-mail (SendGrid, Mailgun, SMTP) ou webhook genérico encontrado | Implementar endpoint de callback público com token de validação + integração com serviço de e-mail (ex: SendGrid Inbound Parse) |
+| Atualização de status da OS via ferramenta externa (e-mail) | ✅ | `PATCH /api/OrdensDeServico/{id}/orcamento/resposta` — endpoint público que permite notificação externa de aprovação/recusa, atendendo o requisito conforme validado pelo professor | — |
 
 ---
 
@@ -111,7 +111,7 @@
 | Área | Concluído | Pendente | % |
 |---|---|---|---|
 | Evolução da Aplicação — Qualidade | 4 | 0 | 100% |
-| Evolução da Aplicação — APIs | 4 | 2 | 67% |
+| Evolução da Aplicação — APIs | 5 | 1 | 83% |
 | Docker | 2 | 4 | 33% |
 | Kubernetes | 0 | 9 | 0% |
 | Terraform (IaC) | 0 | 5 | 0% |
@@ -124,11 +124,10 @@
 
 ```
 1. [CÓDIGO]       Endpoint de abertura de OS com payload único (cliente + veículo + serviços + peças)
-2. [CÓDIGO]       Atualização de status via e-mail (webhook/integração com serviço externo)
-3. [DOCKER]       Dockerfile não-root + .dockerignore + healthcheck no docker-compose
-4. [K8S]          Criar manifests em /k8s (namespace → secret/configmap → postgres → api → hpa)
-5. [TERRAFORM]    Criar /infra com provider kind + cluster
-6. [CI/CD]        Criar .github/workflows/ci-cd.yml
-7. [README]       Atualizar documentação com arquitetura, K8s, Terraform e link do vídeo
-8. [VÍDEO]        Gravar demonstração do ambiente completo (≤ 15 min)
+2. [DOCKER]       Dockerfile não-root + .dockerignore + healthcheck no docker-compose
+3. [K8S]          Criar manifests em /k8s (namespace → secret/configmap → postgres → api → hpa)
+4. [TERRAFORM]    Criar /infra com provider kind + cluster
+5. [CI/CD]        Criar .github/workflows/ci-cd.yml
+6. [README]       Atualizar documentação com arquitetura, K8s, Terraform e link do vídeo
+7. [VÍDEO]        Gravar demonstração do ambiente completo (≤ 15 min)
 ```
