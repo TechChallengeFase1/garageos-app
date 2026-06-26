@@ -24,7 +24,7 @@ public class ClientesControllerTests : IClassFixture<ApiFactory>
         var response = await _client.GetAsync("/api/clientes");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var lista = await response.Content.ReadFromJsonAsync<IEnumerable<ClienteResponse>>();
+        var lista = await response.Content.ReadFromJsonAsync<IEnumerable<ClienteResponse>>(JsonDefaults.Options);
         lista.Should().NotBeNull();
     }
 
@@ -38,7 +38,7 @@ public class ClientesControllerTests : IClassFixture<ApiFactory>
         var response = await _client.PostAsJsonAsync("/api/clientes", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var cliente = await response.Content.ReadFromJsonAsync<ClienteResponse>();
+        var cliente = await response.Content.ReadFromJsonAsync<ClienteResponse>(JsonDefaults.Options);
         cliente!.Id.Should().NotBeEmpty();
         cliente.Nome.Should().Be(request.Nome);
         cliente.Email.Should().Be(request.Email);
@@ -120,7 +120,7 @@ public class ClientesControllerTests : IClassFixture<ApiFactory>
         var response = await _client.GetAsync($"/api/clientes/{criado!.Id}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var cliente = await response.Content.ReadFromJsonAsync<ClienteResponse>();
+        var cliente = await response.Content.ReadFromJsonAsync<ClienteResponse>(JsonDefaults.Options);
         cliente!.Id.Should().Be(criado.Id);
         cliente.Email.Should().Be(email);
     }
@@ -159,7 +159,7 @@ public class ClientesControllerTests : IClassFixture<ApiFactory>
         var response = await _client.PutAsJsonAsync($"/api/clientes/{criado!.Id}", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var atualizado = await response.Content.ReadFromJsonAsync<ClienteResponse>();
+        var atualizado = await response.Content.ReadFromJsonAsync<ClienteResponse>(JsonDefaults.Options);
         atualizado!.Nome.Should().Be("Nome Atualizado");
         atualizado.Email.Should().Be(novoEmail);
     }
@@ -212,7 +212,7 @@ public class ClientesControllerTests : IClassFixture<ApiFactory>
     {
         var response = await _client.PostAsJsonAsync("/api/clientes",
             CriarClienteRequestPadrao(email, documento));
-        return await response.Content.ReadFromJsonAsync<ClienteResponse>();
+        return await response.Content.ReadFromJsonAsync<ClienteResponse>(JsonDefaults.Options);
     }
 
     private static CriarClienteRequest CriarClienteRequestPadrao(string email, string documento) =>

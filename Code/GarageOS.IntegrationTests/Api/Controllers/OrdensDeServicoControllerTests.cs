@@ -32,7 +32,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         var response = await _client.GetAsync("/api/ordensdeservico");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var lista = await response.Content.ReadFromJsonAsync<IEnumerable<OrdemDeServicoResponse>>();
+        var lista = await response.Content.ReadFromJsonAsync<IEnumerable<OrdemDeServicoResponse>>(JsonDefaults.Options);
         lista.Should().NotBeNull();
     }
 
@@ -56,7 +56,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         var response = await _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var os = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>();
+        var os = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
         os!.Id.Should().NotBeEmpty();
         os.NumeroOS.Should().StartWith("OS-");
         os.ClienteId.Should().Be(cliente.Id);
@@ -119,8 +119,8 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         var r1 = await _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa", request);
         var r2 = await _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa", request);
 
-        var os1 = await r1.Content.ReadFromJsonAsync<OrdemDeServicoResponse>();
-        var os2 = await r2.Content.ReadFromJsonAsync<OrdemDeServicoResponse>();
+        var os1 = await r1.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
+        var os2 = await r2.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
 
         os1!.NumeroOS.Should().NotBe(os2!.NumeroOS);
     }
@@ -337,7 +337,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         var response = await _client.GetAsync($"/api/ordensdeservico/{os!.Id}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>();
+        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
         resultado!.Id.Should().Be(os.Id);
         resultado.NumeroOS.Should().Be(os.NumeroOS);
     }
@@ -363,11 +363,9 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{os!.Id}/servicos", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>();
-        // SPEC_DEVIATION: CriarOrdemDeServicoAsync() now opens the OS via abertura-completa,
-        // which requires >= 1 ServicosIds (AC4), so the OS already has one base servico.
-        // Reason: assert the newly added servico is present, not an exact total count of 1.
-        resultado!.Servicos.Should().Contain(s => s.ServicoId == servico.Id);
+        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
+        resultado!.Servicos.Should().HaveCount(1);
+        resultado.Servicos.First().ServicoId.Should().Be(servico.Id);
     }
 
     [Fact]
@@ -407,7 +405,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{os!.Id}/estoques", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>();
+        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
         resultado!.Estoques.Should().HaveCount(1);
         resultado.Estoques.First().EstoqueId.Should().Be(estoque.Id);
         resultado.Estoques.First().Quantidade.Should().Be(2);
@@ -449,7 +447,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         var response = await _client.PatchAsJsonAsync($"/api/ordensdeservico/{os!.Id}/status", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>();
+        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
         resultado!.Status.Should().Be(StatusOrdemDeServico.Finalizada);
     }
 
@@ -502,7 +500,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         var response = await _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa", request);
         response.StatusCode.Should().Be(HttpStatusCode.Created,
             $"Falha ao criar OS: cliente={cliente.Id}, veiculo={veiculo.Id}, servico={servico.Id}, status={response.StatusCode}");
-        return await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>();
+        return await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
     }
 
     private async Task<ClienteResponse?> CadastrarClienteAsync()
@@ -524,7 +522,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         var response = await _client.PostAsJsonAsync("/api/clientes", request);
         response.StatusCode.Should().Be(HttpStatusCode.Created,
             $"Falha ao cadastrar cliente doc={request.Documento} email={request.Email}, status={response.StatusCode}");
-        return await response.Content.ReadFromJsonAsync<ClienteResponse>();
+        return await response.Content.ReadFromJsonAsync<ClienteResponse>(JsonDefaults.Options);
     }
 
     private async Task<VeiculoResponse?> CadastrarVeiculoAsync()
@@ -541,14 +539,14 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         var response = await _client.PostAsJsonAsync("/api/veiculos", request);
         response.StatusCode.Should().Be(HttpStatusCode.Created,
             $"Falha ao cadastrar veiculo placa={request.PlacaVeiculo}, status={response.StatusCode}");
-        return await response.Content.ReadFromJsonAsync<VeiculoResponse>();
+        return await response.Content.ReadFromJsonAsync<VeiculoResponse>(JsonDefaults.Options);
     }
 
     private async Task<ServicoResponse?> CadastrarServicoAsync(string nome, decimal preco)
     {
         var request = new CriarServicoRequest { NomeServico = nome, Preco = preco };
         var response = await _client.PostAsJsonAsync("/api/servicos", request);
-        return await response.Content.ReadFromJsonAsync<ServicoResponse>();
+        return await response.Content.ReadFromJsonAsync<ServicoResponse>(JsonDefaults.Options);
     }
 
     private async Task<EstoqueResponse?> CadastrarEstoqueAsync(string nome, int quantidade, decimal valor)
@@ -563,7 +561,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         };
 
         var response = await _client.PostAsJsonAsync("/api/estoques", request);
-        return await response.Content.ReadFromJsonAsync<EstoqueResponse>();
+        return await response.Content.ReadFromJsonAsync<EstoqueResponse>(JsonDefaults.Options);
     }
 
     // ── POST /api/ordensdeservico/{id}/orcamento ─────────────────────────────
@@ -583,7 +581,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{os.Id}/orcamento", new { });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>();
+        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
         resultado!.Orcamento.Should().NotBeNull();
         // SPEC_DEVIATION: CriarOrdemDeServicoAsync() now opens the OS via abertura-completa,
         // which links a base servico (preco 99.00m) since the endpoint requires >= 1 ServicosIds.
@@ -600,7 +598,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{os!.Id}/orcamento", new { });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>();
+        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
         resultado!.Orcamento.Should().NotBeNull();
         // SPEC_DEVIATION: CriarOrdemDeServicoAsync() now opens the OS via abertura-completa,
         // which links a base servico (preco 99.00m) since the endpoint requires >= 1 ServicosIds.
@@ -627,7 +625,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{os.Id}/orcamento/enviar", new { });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>();
+        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
         resultado!.Status.Should().Be(StatusOrdemDeServico.AguardandoAprovacao);
     }
 
@@ -660,7 +658,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
             new ResponderOrcamentoRequest { Aprovado = true });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>();
+        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
         resultado!.Status.Should().Be(StatusOrdemDeServico.EmExecucao);
         resultado.Orcamento!.Status.Should().Be(StatusOrcamento.Aprovado);
     }
@@ -679,7 +677,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         await _client.PatchAsJsonAsync($"/api/ordensdeservico/{os.Id}/orcamento/resposta",
             new ResponderOrcamentoRequest { Aprovado = true });
 
-        var estoqueAtualizado = await _client.GetFromJsonAsync<EstoqueResponse>($"/api/estoques/{estoque.Id}");
+        var estoqueAtualizado = await _client.GetFromJsonAsync<EstoqueResponse>($"/api/estoques/{estoque.Id}", JsonDefaults.Options);
         estoqueAtualizado!.Quantidade.Should().Be(7); // 10 - 3
     }
 
@@ -692,7 +690,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
             new ResponderOrcamentoRequest { Aprovado = false });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>();
+        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
         resultado!.Status.Should().Be(StatusOrdemDeServico.Finalizada);
         resultado.Orcamento!.Status.Should().Be(StatusOrcamento.Rejeitado);
     }
@@ -737,7 +735,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
             new AlterarStatusServicoNaOSRequest { Status = StatusExecucaoServico.Iniciado });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<ServicoItemResponse>();
+        var resultado = await response.Content.ReadFromJsonAsync<ServicoItemResponse>(JsonDefaults.Options);
         resultado!.Status.Should().Be(StatusExecucaoServico.Iniciado);
         resultado.IniciadaEm.Should().NotBeNull();
     }
@@ -752,7 +750,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
             new AlterarStatusServicoNaOSRequest { Status = StatusExecucaoServico.Finalizado });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<ServicoItemResponse>();
+        var resultado = await response.Content.ReadFromJsonAsync<ServicoItemResponse>(JsonDefaults.Options);
         resultado!.Status.Should().Be(StatusExecucaoServico.Finalizado);
         resultado.FinalizadaEm.Should().NotBeNull();
     }
@@ -823,7 +821,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         var response = await _client.GetAsync("/api/ordensdeservico/aging");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<IEnumerable<AgingServicoResponse>>();
+        var resultado = await response.Content.ReadFromJsonAsync<IEnumerable<AgingServicoResponse>>(JsonDefaults.Options);
         resultado.Should().NotBeNull();
     }
 
@@ -838,7 +836,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         var response = await _client.GetAsync("/api/ordensdeservico/aging");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = (await response.Content.ReadFromJsonAsync<IEnumerable<AgingServicoResponse>>())!.ToList();
+        var resultado = (await response.Content.ReadFromJsonAsync<IEnumerable<AgingServicoResponse>>(JsonDefaults.Options))!.ToList();
         resultado.Should().NotBeEmpty();
         resultado.Should().Contain(r => r.TotalExecucoes >= 1);
     }
@@ -853,7 +851,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{os!.Id}/servicos",
             new AdicionarServicoRequest { ServicoId = servico!.Id });
 
-        var osAtualizada = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>();
+        var osAtualizada = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
         return (osAtualizada!, osAtualizada!.Servicos.First());
     }
 

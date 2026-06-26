@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using GarageOS.Application.DTOs.Veiculos;
 using GarageOS.IntegrationTests.Fixtures;
+using GarageOS.IntegrationTests.Helpers;
 
 namespace GarageOS.IntegrationTests.Api.Controllers;
 
@@ -23,7 +24,7 @@ public class VeiculosControllerTests : IClassFixture<ApiFactory>
         var response = await _client.GetAsync("/api/veiculos");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var lista = await response.Content.ReadFromJsonAsync<IEnumerable<VeiculoResponse>>();
+        var lista = await response.Content.ReadFromJsonAsync<IEnumerable<VeiculoResponse>>(JsonDefaults.Options);
         lista.Should().NotBeNull();
     }
 
@@ -45,7 +46,7 @@ public class VeiculosControllerTests : IClassFixture<ApiFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        var veiculo = await response.Content.ReadFromJsonAsync<VeiculoResponse>();
+        var veiculo = await response.Content.ReadFromJsonAsync<VeiculoResponse>(JsonDefaults.Options);
         veiculo!.Id.Should().NotBeEmpty();
         veiculo.MarcaVeiculo.Should().Be(request.MarcaVeiculo);
     }
@@ -78,7 +79,7 @@ public class VeiculosControllerTests : IClassFixture<ApiFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var veiculo = await response.Content.ReadFromJsonAsync<VeiculoResponse>();
+        var veiculo = await response.Content.ReadFromJsonAsync<VeiculoResponse>(JsonDefaults.Options);
         veiculo!.Id.Should().Be(criado.Id);
     }
 
@@ -109,7 +110,7 @@ public class VeiculosControllerTests : IClassFixture<ApiFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var atualizado = await response.Content.ReadFromJsonAsync<VeiculoResponse>();
+        var atualizado = await response.Content.ReadFromJsonAsync<VeiculoResponse>(JsonDefaults.Options);
         atualizado!.MarcaVeiculo.Should().Be("Toyota");
     }
 
@@ -143,6 +144,6 @@ public class VeiculosControllerTests : IClassFixture<ApiFactory>
         };
 
         var response = await _client.PostAsJsonAsync("/api/veiculos", request);
-        return await response.Content.ReadFromJsonAsync<VeiculoResponse>();
+        return await response.Content.ReadFromJsonAsync<VeiculoResponse>(JsonDefaults.Options);
     }
 }

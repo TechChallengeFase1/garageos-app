@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using GarageOS.Application.DTOs.Servicos;
 using GarageOS.IntegrationTests.Fixtures;
+using GarageOS.IntegrationTests.Helpers;
 
 namespace GarageOS.IntegrationTests.Api.Controllers;
 
@@ -23,7 +24,7 @@ public class ServicosControllerTests : IClassFixture<ApiFactory>
         var response = await _client.GetAsync("/api/servicos");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var lista = await response.Content.ReadFromJsonAsync<IEnumerable<ServicoResponse>>();
+        var lista = await response.Content.ReadFromJsonAsync<IEnumerable<ServicoResponse>>(JsonDefaults.Options);
         lista.Should().NotBeNull();
     }
 
@@ -37,7 +38,7 @@ public class ServicosControllerTests : IClassFixture<ApiFactory>
         var response = await _client.PostAsJsonAsync("/api/servicos", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var servico = await response.Content.ReadFromJsonAsync<ServicoResponse>();
+        var servico = await response.Content.ReadFromJsonAsync<ServicoResponse>(JsonDefaults.Options);
         servico!.Id.Should().NotBeEmpty();
         servico.NomeServico.Should().Be(request.NomeServico);
         servico.Preco.Should().Be(request.Preco);
@@ -76,7 +77,7 @@ public class ServicosControllerTests : IClassFixture<ApiFactory>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var servico = await response.Content.ReadFromJsonAsync<ServicoResponse>();
+        var servico = await response.Content.ReadFromJsonAsync<ServicoResponse>(JsonDefaults.Options);
         servico!.Id.Should().Be(criado.Id);
         servico.NomeServico.Should().Be("Balanceamento");
     }
@@ -103,7 +104,7 @@ public class ServicosControllerTests : IClassFixture<ApiFactory>
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var atualizado = await response.Content.ReadFromJsonAsync<ServicoResponse>();
+        var atualizado = await response.Content.ReadFromJsonAsync<ServicoResponse>(JsonDefaults.Options);
         atualizado!.NomeServico.Should().Be("Alinhamento 3D");
         atualizado.Preco.Should().Be(180m);
     }
@@ -124,6 +125,6 @@ public class ServicosControllerTests : IClassFixture<ApiFactory>
     {
         var request = new CriarServicoRequest { NomeServico = nome, Preco = preco };
         var response = await _client.PostAsJsonAsync("/api/servicos", request);
-        return await response.Content.ReadFromJsonAsync<ServicoResponse>();
+        return await response.Content.ReadFromJsonAsync<ServicoResponse>(JsonDefaults.Options);
     }
 }

@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using GarageOS.Application.DTOs.Estoques;
 using GarageOS.IntegrationTests.Fixtures;
+using GarageOS.IntegrationTests.Helpers;
 
 namespace GarageOS.IntegrationTests.Api.Controllers;
 
@@ -23,7 +24,7 @@ public class EstoquesControllerTests : IClassFixture<ApiFactory>
         var response = await _client.GetAsync("/api/estoques");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var lista = await response.Content.ReadFromJsonAsync<IEnumerable<EstoqueResponse>>();
+        var lista = await response.Content.ReadFromJsonAsync<IEnumerable<EstoqueResponse>>(JsonDefaults.Options);
         lista.Should().NotBeNull();
     }
 
@@ -37,7 +38,7 @@ public class EstoquesControllerTests : IClassFixture<ApiFactory>
         var response = await _client.PostAsJsonAsync("/api/estoques", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var estoque = await response.Content.ReadFromJsonAsync<EstoqueResponse>();
+        var estoque = await response.Content.ReadFromJsonAsync<EstoqueResponse>(JsonDefaults.Options);
         estoque!.Id.Should().NotBeEmpty();
         estoque.Nome.Should().Be("Oleo 5W30");
         estoque.Quantidade.Should().Be(10);
@@ -52,7 +53,7 @@ public class EstoquesControllerTests : IClassFixture<ApiFactory>
         var response = await _client.PostAsJsonAsync("/api/estoques", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var estoque = await response.Content.ReadFromJsonAsync<EstoqueResponse>();
+        var estoque = await response.Content.ReadFromJsonAsync<EstoqueResponse>(JsonDefaults.Options);
         estoque!.Quantidade.Should().Be(0);
     }
 
@@ -97,7 +98,7 @@ public class EstoquesControllerTests : IClassFixture<ApiFactory>
         var response = await _client.GetAsync($"/api/estoques/{criado!.Id}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var estoque = await response.Content.ReadFromJsonAsync<EstoqueResponse>();
+        var estoque = await response.Content.ReadFromJsonAsync<EstoqueResponse>(JsonDefaults.Options);
         estoque!.Id.Should().Be(criado.Id);
         estoque.Nome.Should().Be("Filtro Ar");
     }
@@ -129,7 +130,7 @@ public class EstoquesControllerTests : IClassFixture<ApiFactory>
         var response = await _client.PutAsJsonAsync($"/api/estoques/{criado!.Id}", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var atualizado = await response.Content.ReadFromJsonAsync<EstoqueResponse>();
+        var atualizado = await response.Content.ReadFromJsonAsync<EstoqueResponse>(JsonDefaults.Options);
         atualizado!.Nome.Should().Be("Vela de Ignicao NGK");
         atualizado.Quantidade.Should().Be(20);
         atualizado.Valor.Should().Be(18.50m);
@@ -189,7 +190,7 @@ public class EstoquesControllerTests : IClassFixture<ApiFactory>
     {
         var request = CriarEstoqueRequestPadrao(nome, quantidade, valor);
         var response = await _client.PostAsJsonAsync("/api/estoques", request);
-        return await response.Content.ReadFromJsonAsync<EstoqueResponse>();
+        return await response.Content.ReadFromJsonAsync<EstoqueResponse>(JsonDefaults.Options);
     }
 
     private static CriarEstoqueRequest CriarEstoqueRequestPadrao(string nome, int quantidade, decimal valor) =>
