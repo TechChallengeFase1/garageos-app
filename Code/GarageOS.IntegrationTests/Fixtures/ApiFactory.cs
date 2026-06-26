@@ -5,20 +5,22 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using System.Security.Claims;
-using System.Text.Encodings.Web;
-using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Logging;
+using Testcontainers.PostgreSql;
 
 namespace GarageOS.IntegrationTests.Fixtures;
 
-public class ApiFactory : WebApplicationFactory<Program>
+public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
+    private readonly PostgreSqlContainer _pgContainer = new PostgreSqlBuilder("postgres:16")
+        .WithDatabase("garageos_tests")
+        .WithUsername("test")
+        .WithPassword("test")
+        .Build();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureServices(services =>
         {
-            // 🔥 REMOVE DB REAL
             var toRemove = services
                 .Where(d =>
                     d.ServiceType == typeof(DbContextOptions<GarageOSDbContext>) ||
@@ -32,19 +34,31 @@ public class ApiFactory : WebApplicationFactory<Program>
             foreach (var descriptor in toRemove)
                 services.Remove(descriptor);
 
-            // 🔥 IN MEMORY DB
-            var dbName = "GarageOS_Tests_" + Guid.NewGuid();
             services.AddDbContext<GarageOSDbContext>(options =>
-                options.UseInMemoryDatabase(dbName));
+                options.UseNpgsql(_pgContainer.GetConnectionString()));
 
-            // 🔐 MOCK AUTH
             services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = "Test";
-    options.DefaultChallengeScheme = "Test";
-})
-.AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
-    "Test", options => { });
+            {
+                options.DefaultAuthenticateScheme = "Test";
+                options.DefaultChallengeScheme = "Test";
+            })
+            .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
+                "Test", options => { });
         });
+    }
+
+    async Task IAsyncLifetime.InitializeAsync()
+    {
+        await _pgContainer.StartAsync();
+
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<GarageOSDbContext>();
+        await db.Database.MigrateAsync();
+    }
+
+    async Task IAsyncLifetime.DisposeAsync()
+    {
+        await _pgContainer.DisposeAsync();
+        await base.DisposeAsync();
     }
 }

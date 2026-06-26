@@ -14,6 +14,13 @@ RUN dotnet publish "GarageOS.Api/GarageOS.Api.csproj" -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
+
+RUN addgroup --system appuser && adduser --system --ingroup appuser appuser
+
 COPY --from=compilacao /app/publish .
+RUN chown -R appuser:appuser /app
+
+USER appuser
+
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "GarageOS.Api.dll"]
