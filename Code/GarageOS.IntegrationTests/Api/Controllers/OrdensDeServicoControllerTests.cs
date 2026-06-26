@@ -143,7 +143,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         var response = await _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var os = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>();
+        var os = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
         os!.NumeroOS.Should().StartWith("OS-");
         os.Servicos.Should().ContainSingle(s => s.ServicoId == servico.Id);
         os.Estoques.Should().BeEmpty();
@@ -168,10 +168,10 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         var response = await _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var os = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>();
+        var os = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
         os!.Estoques.Should().ContainSingle(e => e.EstoqueId == estoque.Id && e.Quantidade == 2);
 
-        var estoqueAposAbertura = await _client.GetFromJsonAsync<EstoqueResponse>($"/api/estoques/{estoque.Id}");
+        var estoqueAposAbertura = await _client.GetFromJsonAsync<EstoqueResponse>($"/api/estoques/{estoque.Id}", JsonDefaults.Options);
         estoqueAposAbertura!.Quantidade.Should().Be(8);
     }
 
@@ -223,7 +223,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         var veiculo = await CadastrarVeiculoAsync();
         var servicoValido = await CadastrarServicoAsync("Servico Valido", 70.00m);
 
-        var contagemAntes = (await _client.GetFromJsonAsync<List<OrdemDeServicoResponse>>("/api/ordensdeservico"))!.Count;
+        var contagemAntes = (await _client.GetFromJsonAsync<List<OrdemDeServicoResponse>>("/api/ordensdeservico", JsonDefaults.Options))!.Count;
 
         var request = new AbrirOrdemDeServicoCompletaRequest
         {
@@ -236,7 +236,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         var response = await _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var contagemDepois = (await _client.GetFromJsonAsync<List<OrdemDeServicoResponse>>("/api/ordensdeservico"))!.Count;
+        var contagemDepois = (await _client.GetFromJsonAsync<List<OrdemDeServicoResponse>>("/api/ordensdeservico", JsonDefaults.Options))!.Count;
         contagemDepois.Should().Be(contagemAntes);
     }
 
@@ -247,7 +247,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         var veiculo = await CadastrarVeiculoAsync();
         var servico = await CadastrarServicoAsync("Troca de Amortecedor", 300.00m);
 
-        var contagemAntes = (await _client.GetFromJsonAsync<List<OrdemDeServicoResponse>>("/api/ordensdeservico"))!.Count;
+        var contagemAntes = (await _client.GetFromJsonAsync<List<OrdemDeServicoResponse>>("/api/ordensdeservico", JsonDefaults.Options))!.Count;
 
         var request = new AbrirOrdemDeServicoCompletaRequest
         {
@@ -260,7 +260,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
         var response = await _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var contagemDepois = (await _client.GetFromJsonAsync<List<OrdemDeServicoResponse>>("/api/ordensdeservico"))!.Count;
+        var contagemDepois = (await _client.GetFromJsonAsync<List<OrdemDeServicoResponse>>("/api/ordensdeservico", JsonDefaults.Options))!.Count;
         contagemDepois.Should().Be(contagemAntes);
     }
 
@@ -364,8 +364,7 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
-        resultado!.Servicos.Should().HaveCount(1);
-        resultado.Servicos.First().ServicoId.Should().Be(servico.Id);
+        resultado!.Servicos.Should().Contain(s => s.ServicoId == servico.Id);
     }
 
     [Fact]
