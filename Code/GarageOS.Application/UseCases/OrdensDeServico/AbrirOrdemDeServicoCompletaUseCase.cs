@@ -6,23 +6,29 @@ using GarageOS.Domain.Utils;
 
 namespace GarageOS.Application.UseCases.OrdensDeServico;
 
-public class CriarOrdemDeServicoUseCase
+public class AbrirOrdemDeServicoCompletaUseCase
 {
     private readonly IOrdemDeServicoRepository _repository;
     private readonly IClienteRepository _clienteRepository;
     private readonly IVeiculoRepository _veiculoRepository;
+    private readonly IServicoRepository _servicoRepository;
+    private readonly IEstoqueRepository _estoqueRepository;
 
-    public CriarOrdemDeServicoUseCase(
+    public AbrirOrdemDeServicoCompletaUseCase(
         IOrdemDeServicoRepository repository,
         IClienteRepository clienteRepository,
-        IVeiculoRepository veiculoRepository)
+        IVeiculoRepository veiculoRepository,
+        IServicoRepository servicoRepository,
+        IEstoqueRepository estoqueRepository)
     {
         _repository = repository;
         _clienteRepository = clienteRepository;
         _veiculoRepository = veiculoRepository;
+        _servicoRepository = servicoRepository;
+        _estoqueRepository = estoqueRepository;
     }
 
-    public async Task<OrdemDeServicoResponse> ExecutarAsync(CriarOrdemDeServicoRequest request)
+    public async Task<OrdemDeServicoResponse> ExecutarAsync(AbrirOrdemDeServicoCompletaRequest request)
     {
         var cliente = await _clienteRepository.ObterPorIdAsync(request.ClienteId);
         if (cliente == null)
@@ -32,12 +38,40 @@ public class CriarOrdemDeServicoUseCase
         if (veiculo == null)
             throw new VeiculoNaoEncontradoException(request.VeiculoId);
 
+        var servicosIdsValidados = new List<Guid>();
+        foreach (var servicoId in request.ServicosIds)
+        {
+            var servico = await _servicoRepository.ObterPorIdAsync(servicoId);
+            if (servico == null)
+                throw new ServicoNaoEncontradoException(servicoId);
+
+            servicosIdsValidados.Add(servicoId);
+        }
+
+        var pecas = request.Pecas ?? [];
+        var pecasValidadas = new List<PecaRequest>();
+        foreach (var peca in pecas)
+        {
+            var estoque = await _estoqueRepository.ObterPorIdAsync(peca.EstoqueId);
+            if (estoque == null)
+                throw new EstoqueNaoEncontradoException(peca.EstoqueId);
+
+            pecasValidadas.Add(peca);
+        }
+
         var ano = BrasiliaTime.Agora.Year;
         var ultimoSequencial = await _repository.ObterUltimoSequencialDoAnoAsync(ano);
         var novoSequencial = ultimoSequencial + 1;
         var numeroOS = $"OS-{ano}-{novoSequencial:D5}";
 
         var ordemDeServico = new OrdemDeServico(numeroOS, request.ClienteId, request.VeiculoId);
+
+        foreach (var servicoId in servicosIdsValidados)
+            ordemDeServico.AdicionarServico(new OrdemDeServicoServico(ordemDeServico.Id, servicoId));
+
+        foreach (var peca in pecasValidadas)
+            ordemDeServico.AdicionarEstoque(new OrdemDeServicoEstoque(ordemDeServico.Id, peca.EstoqueId, peca.Quantidade));
+
         await _repository.AdicionarAsync(ordemDeServico);
 
         return MapearParaResponse(ordemDeServico);

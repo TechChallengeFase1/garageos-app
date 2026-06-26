@@ -12,7 +12,7 @@ namespace GarageOS.Api.Controllers;
 [Route("api/[controller]")]
 public class OrdensDeServicoController : ControllerBase
 {
-    private readonly CriarOrdemDeServicoUseCase _criarUseCase;
+    private readonly AbrirOrdemDeServicoCompletaUseCase _abrirCompletaUseCase;
     private readonly ListarOrdensDeServicoUseCase _listarUseCase;
     private readonly ObterOrdemDeServicoUseCase _obterUseCase;
     private readonly AdicionarServicoNaOSUseCase _adicionarServicoUseCase;
@@ -27,7 +27,7 @@ public class OrdensDeServicoController : ControllerBase
 
     /// <summary>Inicializa o controller com os use cases de ordens de serviço</summary>
     public OrdensDeServicoController(
-        CriarOrdemDeServicoUseCase criarUseCase,
+        AbrirOrdemDeServicoCompletaUseCase abrirCompletaUseCase,
         ListarOrdensDeServicoUseCase listarUseCase,
         ObterOrdemDeServicoUseCase obterUseCase,
         AdicionarServicoNaOSUseCase adicionarServicoUseCase,
@@ -40,7 +40,7 @@ public class OrdensDeServicoController : ControllerBase
         AlterarStatusServicoNaOSUseCase alterarStatusServicoUseCase,
         CalcularAgingServicosUseCase calcularAgingUseCase)
     {
-        _criarUseCase = criarUseCase;
+        _abrirCompletaUseCase = abrirCompletaUseCase;
         _listarUseCase = listarUseCase;
         _obterUseCase = obterUseCase;
         _adicionarServicoUseCase = adicionarServicoUseCase;
@@ -54,28 +54,25 @@ public class OrdensDeServicoController : ControllerBase
         _calcularAgingUseCase = calcularAgingUseCase;
     }
 
-    /// <summary>Cria uma nova Ordem de Serviço</summary>
+    /// <summary>Abre uma nova Ordem de Serviço completa</summary>
     /// <remarks>
-    /// Cria uma nova Ordem de Serviço vinculada a um cliente e um veículo.
+    /// Cria uma nova Ordem de Serviço vinculando, em uma única chamada, cliente, veículo,
+    /// serviço(s) e peça(s) (lista de peças pode ser vazia, mas deve estar presente).
     /// A OS é inicializada com status "Recebida" e um número sequencial único no formato OS-{ANO}-{SEQUENCIAL:D5}.
-    ///
-    /// Exemplo de resposta:
-    /// - NumeroOS: OS-2026-00001
-    /// - Status: Recebida
-    /// - ClienteId e VeiculoId devem existir no sistema
+    /// Caso qualquer referência (Cliente, Veículo, Serviço ou Peça) não seja encontrada, nada é persistido.
     /// </remarks>
-    /// <param name="request">Dados para criação da Ordem de Serviço (ClienteId, VeiculoId)</param>
+    /// <param name="request">Dados para abertura completa da Ordem de Serviço (ClienteId, VeiculoId, ServicosIds, Pecas)</param>
     /// <returns>Ordem de Serviço criada com sucesso (201)</returns>
     /// <response code="201">Ordem de Serviço criada com sucesso</response>
-    /// <response code="400">Cliente ou Veículo não encontrado</response>
+    /// <response code="400">Dados inválidos ou referência (Cliente/Veículo/Serviço/Peça) não encontrada</response>
     /// <response code="401">Não autorizado - token JWT ausente ou inválido</response>
     [Authorize]
-    [HttpPost]
+    [HttpPost("abertura-completa")]
     [ProducesResponseType(typeof(OrdemDeServicoResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Criar([FromBody] CriarOrdemDeServicoRequest request)
+    public async Task<IActionResult> AbrirCompleta([FromBody] AbrirOrdemDeServicoCompletaRequest request)
     {
-        var validator = new CriarOrdemDeServicoValidator();
+        var validator = new AbrirOrdemDeServicoCompletaValidator();
         var validation = await validator.ValidateAsync(request);
 
         if (!validation.IsValid)
@@ -83,7 +80,7 @@ public class OrdensDeServicoController : ControllerBase
 
         try
         {
-            var resultado = await _criarUseCase.ExecutarAsync(request);
+            var resultado = await _abrirCompletaUseCase.ExecutarAsync(request);
             return CreatedAtAction(nameof(Obter), new { id = resultado.Id }, resultado);
         }
         catch (ClienteNaoEncontradoException ex)
@@ -94,7 +91,24 @@ public class OrdensDeServicoController : ControllerBase
         {
             return BadRequest(new { mensagem = ex.Message });
         }
+        catch (ServicoNaoEncontradoException ex)
+        {
+            return BadRequest(new { mensagem = ex.Message });
+        }
+        catch (EstoqueNaoEncontradoException ex)
+        {
+            return BadRequest(new { mensagem = ex.Message });
+        }
     }
+
+    // SPEC_DEVIATION: design.md assumed removing the bare [HttpPost] action would make
+    // POST /api/ordensdeservico 404 automatically (AC11). In practice ASP.NET still matches
+    // the route via the [HttpGet] Listar action and returns 405 (method not allowed) instead
+    // of 404, since the route template itself still exists for another verb.
+    // Reason: AC11 explicitly requires 404 ("rota removida"), so an explicit shim is needed.
+    [HttpPost]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public IActionResult CriarRotaAntigaRemovida() => NotFound();
 
     /// <summary>Lista todas as Ordens de Serviço cadastradas</summary>
     /// <remarks>
