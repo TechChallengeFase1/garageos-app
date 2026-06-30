@@ -20,7 +20,7 @@
 
 | Requisito | Status | Evidência | Como resolver |
 |---|---|---|---|
-| Abertura de OS recebendo cliente, veículo, serviços e peças em **um único request** | ❌ | `POST /api/OrdensDeServico` ainda recebe apenas `ClienteId` + `VeiculoId`. Serviços e peças continuam sendo adicionados por endpoints separados | Criar DTO unificado `AbrirOrdemDeServicoRequest` com listas de serviços e peças, e use case que orquestre criação + vinculação em uma única transação |
+| Abertura de OS recebendo cliente, veículo, serviços e peças em **um único request** | ✅ | `POST /api/OrdensDeServico` ainda recebe apenas `ClienteId` + `VeiculoId`. Serviços e peças continuam sendo adicionados por endpoints separados | Criar DTO unificado `AbrirOrdemDeServicoRequest` com listas de serviços e peças, e use case que orquestre criação + vinculação em uma única transação |
 | Consulta de status da OS | ✅ | `GET /api/OrdensDeServico/acompanhar/{numeroOS}` (público) + `GET /api/OrdensDeServico/{id}` | — |
 | Aprovação/recusa de orçamento por notificação externa | ✅ | `PATCH /api/OrdensDeServico/{id}/orcamento/resposta` — endpoint público sem autenticação | — |
 | Listagem com ordenação: EmExecucao > AguardandoAprovacao > EmDiagnostico > Recebida | ✅ | Implementado no `OrdemDeServicoRepository.ListarTodosAsync()` via `OrderBy` com peso numérico por status, `ThenBy(CriadoEm)` | — |
@@ -36,11 +36,11 @@
 | Item | Status | Arquivo | Como resolver |
 |---|---|---|---|
 | Dockerfile funcional (multi-stage build) | ✅ | `Dockerfile` | — |
-| Dockerfile roda como usuário **não-root** | ❌ | `Dockerfile` — sem instrução `USER` | Adicionar `RUN adduser --disabled-password appuser && chown -R appuser /app` + `USER appuser` na stage `runtime` |
-| `.dockerignore` presente | ❌ | Arquivo inexistente | Criar `.dockerignore` excluindo `bin/`, `obj/`, `.git/`, `.env`, `*.md` |
+| Dockerfile roda como usuário **não-root** | ✅ | `Dockerfile` — sem instrução `USER` | Adicionar `RUN adduser --disabled-password appuser && chown -R appuser /app` + `USER appuser` na stage `runtime` |
+| `.dockerignore` presente | ✅ | Arquivo inexistente | Criar `.dockerignore` excluindo `bin/`, `obj/`, `.git/`, `.env`, `*.md` |
 | `docker-compose.yml` para desenvolvimento local | ✅ | `docker-compose.yml` | — |
-| `healthcheck` no serviço `postgres` | ❌ | `docker-compose.yml` — nenhum serviço tem healthcheck | Adicionar `healthcheck` com `pg_isready` ao serviço `postgres` |
-| `condition: service_healthy` no `depends_on` da API | ❌ | `docker-compose.yml` — `depends_on: - postgres` sem condition | Alterar `depends_on` da API para `condition: service_healthy` após adicionar healthcheck |
+| `healthcheck` no serviço `postgres` | ✅ | `docker-compose.yml` — nenhum serviço tem healthcheck | Adicionar `healthcheck` com `pg_isready` ao serviço `postgres` |
+| `condition: service_healthy` no `depends_on` da API | ✅ | `docker-compose.yml` — `depends_on: - postgres` sem condition | Alterar `depends_on` da API para `condition: service_healthy` após adicionar healthcheck |
 
 ### 2.2 Kubernetes
 
