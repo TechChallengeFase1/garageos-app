@@ -1,5 +1,7 @@
 using System.Text.Json.Serialization;
 using GarageOS.Api.Extensions;
+using GarageOS.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +34,14 @@ app.UseGarageOSMiddlewares();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// Aplica migrations pendentes na inicializacao (necessario para deploy em K8s,
+// onde o banco sobe vazio). Idempotente: nao faz nada se ja estiver atualizado.
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<GarageOSDbContext>();
+    await db.Database.MigrateAsync();
+}
 
 await app.RunAsync();
 

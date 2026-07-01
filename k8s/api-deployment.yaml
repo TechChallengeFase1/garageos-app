@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: garageos-api
+  namespace: garageos
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: garageos-api
+  template:
+    metadata:
+      labels:
+        app: garageos-api
+    spec:
+      containers:
+        - name: api
+          # Imagem local (Docker Desktop compartilha o daemon com o cluster).
+          # Para CI/CD trocar por: <usuario>/garageos-api:<tag> e imagePullPolicy: Always
+          image: garageos-api:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          # Injeta todas as chaves do ConfigMap e do Secret como variaveis de ambiente
+          envFrom:
+            - configMapRef:
+                name: garageos-config
+            - secretRef:
+                name: garageos-secret
+          # Sem endpoint /health na API: usamos probe TCP na porta 8080
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          # requests.cpu e obrigatorio para o HPA calcular a % de utilizacao
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
