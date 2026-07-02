@@ -15,10 +15,9 @@ spec:
     spec:
       containers:
         - name: api
-          # Imagem local (Docker Desktop compartilha o daemon com o cluster).
-          # Para CI/CD trocar por: <usuario>/garageos-api:<tag> e imagePullPolicy: Always
-          image: garageos-api:local
-          imagePullPolicy: IfNotPresent
+          # Imagem publicada no Docker Hub (usuario garageosfiap)
+          image: garageosfiap/garageos-api:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
               name: http
