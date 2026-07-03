@@ -1,0 +1,12 @@
+# Kubeconfig gerado pelo kind (contem credenciais do cluster)
+garageos-config
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+override.tf
+override.tf.json

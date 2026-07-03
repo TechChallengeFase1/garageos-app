@@ -4,11 +4,9 @@ metadata:
   name: garageos-config
   namespace: garageos
 data:
-  # Configuracoes nao-sensiveis da API
+  # Configuracoes nao-sensiveis da API (aplicadas pelo CI/CD).
+  # As variaveis do Postgres ficam no Terraform (garageos-db-config).
   ASPNETCORE_ENVIRONMENT: "Development"
   Jwt__Issuer: "GarageOS.Api"
   Jwt__Audience: "GarageOS.Client"
   Admin__Username: "admin"
-  # Configuracoes nao-sensiveis do Postgres
-  POSTGRES_USER: "garageos"
-  POSTGRES_DB: "garageos"

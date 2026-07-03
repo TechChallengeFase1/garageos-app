@@ -21,20 +21,21 @@ spec:
             - containerPort: 5432
               name: postgres
           env:
+            # Credenciais do banco: providas pelo Terraform (garageos-db-config / garageos-db-secret)
             - name: POSTGRES_USER
               valueFrom:
                 configMapKeyRef:
-                  name: garageos-config
+                  name: garageos-db-config
                   key: POSTGRES_USER
             - name: POSTGRES_DB
               valueFrom:
                 configMapKeyRef:
-                  name: garageos-config
+                  name: garageos-db-config
                   key: POSTGRES_DB
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: garageos-secret
+                  name: garageos-db-secret
                   key: POSTGRES_PASSWORD
             # Subdiretorio evita conflito com lost+found do volume montado
             - name: PGDATA
