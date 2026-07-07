@@ -34,3 +34,6 @@ jobs:
 
       - name: Integration tests
         run: dotnet test Code/GarageOS.IntegrationTests/GarageOS.IntegrationTests.csproj --configuration Release --no-build
+
+      - name: Docker build
+        run: docker build -t garageos-api:${{ github.sha }} .
