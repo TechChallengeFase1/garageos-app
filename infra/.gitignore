@@ -2,8 +2,9 @@
 garageos-config
 
 # Terraform
+# Obs: .terraform.lock.hcl NAO e ignorado de proposito - deve ser versionado
+# (trava as versoes dos providers para todos os ambientes e para o CI/CD).
 .terraform/
-.terraform.lock.hcl
 *.tfstate
 *.tfstate.*
 *.tfvars
