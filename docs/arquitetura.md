@@ -1,8 +1,8 @@
 # GarageOS — Desenho da Arquitetura Proposta
 
-Componentes da aplicação (Clean Architecture) e infraestrutura provisionada (Kubernetes) para a API de gestão de oficina automotiva.
+Componentes da aplicação (Clean Architecture) e infraestrutura provisionada (Terraform + Kubernetes) para a API de gestão de oficina automotiva.
 
-> Branch `main` · Runtime .NET 10 / ASP.NET Core · Banco PostgreSQL 16 · Orquestração Kubernetes
+> Branch `main` · Runtime .NET 10 / ASP.NET Core · Banco PostgreSQL 16 · Orquestração Kubernetes (kind) · IaC Terraform
 
 ![Desenho da arquitetura do GarageOS](./arquitetura.png)
 
@@ -59,9 +59,46 @@ flowchart TB
 
 ---
 
-## 2. Infraestrutura Provisionada
+## 2. Infraestrutura como Código (Terraform)
 
-Produção roda em um cluster Kubernetes: a imagem publicada no Docker Hub é implantada como Deployment com
+O diretório `infra/` provisiona, via Terraform, a **base** do ambiente: cluster Kubernetes, namespace, metrics-server
+e banco de dados. A aplicação em si (Deployment/Service/HPA/ConfigMap/Secret da API) **não** é provisionada pelo
+Terraform — ela é aplicada a partir de `k8s/` via `kubectl apply` pela pipeline de CI/CD. Todos os recursos são
+declarados como resources de verdade (`kind_cluster`, `kubernetes_*`, `helm_release`, `kubectl_manifest`), sem
+`local-exec`.
+
+| Arquivo | Recurso Terraform | Provisiona |
+|---|---|---|
+| `cluster.tf` | `kind_cluster.garageos` | Cluster Kubernetes local (kind), NodePort 30080 mapeado para `localhost` via `extra_port_mappings` |
+| `namespace.tf` | `kubernetes_namespace.garageos` | Namespace `garageos` |
+| `metrics-server.tf` | `helm_release.metrics_server` | metrics-server via Helm, em `kube-system` (necessário para o HPA ler CPU) |
+| `database.tf` | `kubernetes_config_map.db_config`, `kubernetes_secret.db_secret` | Config/credenciais do Postgres (`POSTGRES_USER`, `POSTGRES_DB`, `POSTGRES_PASSWORD`) |
+| `database.tf` | `kubectl_manifest.postgres_*` | PVC, Service e StatefulSet do Postgres (reaproveita YAMLs de `infra/manifests/`) |
+
+```mermaid
+flowchart TB
+    TF["Terraform apply\n(infra/)"]
+    TF --> C1["kind_cluster.garageos"]
+    TF --> C2["kubernetes_namespace.garageos"]
+    TF --> C3["helm_release.metrics_server\n(kube-system)"]
+    TF --> C4["kubernetes_config_map/secret\ndb_config · db_secret"]
+    TF --> C5["kubectl_manifest.postgres_*\nPVC · Service · StatefulSet"]
+
+    CICD["kubectl apply -f k8s/\n(CI/CD — hoje manual)"]
+    CICD --> A1["Deployment/Service/HPA\nConfigMap/Secret da API"]
+
+    C2 -.->|namespace pronto| CICD
+    C5 -.->|banco pronto| CICD
+```
+
+> `.github/workflows/` já existe no repositório mas ainda está vazio — o `kubectl apply -f k8s/` descrito no
+> README de `infra/` hoje é executado manualmente, não por uma pipeline automatizada.
+
+---
+
+## 3. Infraestrutura Provisionada (Kubernetes)
+
+Produção roda no cluster kind criado pelo Terraform: a imagem publicada no Docker Hub é implantada como Deployment com
 autoscaling, exposta via Service NodePort, e persiste dados em um StatefulSet PostgreSQL com volume dedicado.
 
 ```mermaid
@@ -70,9 +107,9 @@ flowchart TB
     DockerHub["Docker Hub\ngarageosfiap/garageos-api:latest"]
 
     subgraph NS["Namespace: garageos"]
-        Svc1["Service — garageos-api-service\n(NodePort 30080)"]
+        Svc1["Service — garageos-api-service\n(NodePort 30080) · CI/CD"]
 
-        subgraph Dep["Deployment — garageos-api (2 réplicas base)"]
+        subgraph Dep["Deployment — garageos-api (2 réplicas base) · CI/CD"]
             Pod1["Pod 1/2"]
             Pod2["Pod 2/2"]
             HPA["HPA\nescala 2 → 10 réplicas @ 70% CPU"]
@@ -80,30 +117,39 @@ flowchart TB
             Sec["Secret\ncredenciais banco/JWT/admin (base64)"]
         end
 
-        Svc2["Service — postgres-service\n(ClusterIP)"]
+        Svc2["Service — postgres-service\n(ClusterIP) · Terraform"]
 
-        subgraph STS["StatefulSet — postgres (PostgreSQL 16)"]
+        subgraph STS["StatefulSet — postgres (PostgreSQL 16) · Terraform"]
             PVC["PVC\nvolume persistente"]
+            DBCM["ConfigMap db\nPOSTGRES_USER/DB"]
+            DBSec["Secret db\nPOSTGRES_PASSWORD"]
         end
     end
+
+    MS["metrics-server (Helm)\nkube-system · Terraform"]
 
     Cliente -->|HTTP :30080| Svc1
     Svc1 -->|roteia para| Dep
     Dep -->|Npgsql :5432| Svc2
     Svc2 -->|roteia para| STS
     STS --- PVC
+    STS --- DBCM
+    STS --- DBSec
     DockerHub -.->|pull de imagem| Dep
-    HPA -.->|monitora CPU| Dep
+    MS -.->|monitora CPU| HPA
+    HPA -.->|escala| Dep
     CM -.->|injeta env| Dep
     Sec -.->|injeta env| Dep
 ```
 
-**Legenda**: seta sólida = fluxo de requisição/dados · seta tracejada = configuração, montagem ou pull externo.
+**Legenda**: seta sólida = fluxo de requisição/dados · seta tracejada = configuração, montagem, pull externo ou monitoramento.
+Os rótulos **Terraform** / **CI/CD** em cada objeto indicam quem o provisiona (ver seção 2).
 
 ---
 
 ## Observações
 
-- Ambiente local de desenvolvimento usa `docker-compose.yml` (postgres, pgadmin, api, sonarqube-db, sonarqube) em vez do cluster K8s — não representado aqui por ser um ambiente à parte.
+- O cluster é um `kind` (Kubernetes-in-Docker) local, não um provedor cloud — adequado ao escopo do curso; os módulos Terraform (providers `kubernetes`/`helm`/`kubectl`) portariam para EKS/AKS/GKE trocando principalmente `cluster.tf`.
+- Ambiente local de desenvolvimento também pode usar `docker-compose.yml` (postgres, pgadmin, api, sonarqube-db, sonarqube) como alternativa ao cluster K8s — não representado aqui por ser um ambiente à parte.
 - As probes do Deployment são TCP puras porque a API ainda não expõe um endpoint `/health`; um readiness/liveness HTTP traria diagnóstico mais preciso.
-- O Secret do K8s guarda os valores em base64 (não criptografado) — considerar um cofre externo (ex. Sealed Secrets, Vault) antes de expor o repositório publicamente.
+- Os Secrets (app e banco) guardam os valores em base64 (não criptografado) — considerar um cofre externo (ex. Sealed Secrets, Vault) antes de expor o repositório publicamente.
