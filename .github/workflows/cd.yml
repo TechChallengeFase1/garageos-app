@@ -1,0 +1,122 @@
+name: CD
+
+# Pipeline de entrega continua: roda no merge para a main e executa o fluxo
+# completo exigido no Tech Challenge (build, testes, imagem, deploy do cluster,
+# deploy do banco e aplicacao dos manifestos da app).
+#
+# Divisao de responsabilidades (conforme orientacao do professor):
+#   - Terraform (infra/) provisiona a base: cluster kind + namespace +
+#     metrics-server + banco de dados (IaC).
+#   - Esta pipeline aplica os manifestos da APLICACAO (k8s/): ConfigMap, Secret,
+#     Deployment, Service e HPA (CI/CD).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: garageosfiap/garageos-api
+
+jobs:
+  # 1) Build da aplicacao + 2) Execucao dos testes automatizados
+  build-test:
+    name: Build e testes automatizados
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore Code/GarageOS.slnx
+
+      - name: Build da aplicacao
+        run: dotnet build Code/GarageOS.slnx --configuration Release --no-restore
+
+      - name: Testes unitarios
+        run: dotnet test Code/GarageOS.UnitTests/GarageOS.UnitTests.csproj --configuration Release --no-build
+
+      - name: Testes de integracao
+        run: dotnet test Code/GarageOS.IntegrationTests/GarageOS.IntegrationTests.csproj --configuration Release --no-build
+
+  # 3) Build da imagem Docker (e push para o Docker Hub)
+  docker:
+    name: Build e push da imagem Docker
+    needs: build-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login no Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build e push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+
+  # 4) Deploy no cluster Kubernetes + 5) Deploy do banco de dados
+  #    + 6) Aplicacao dos manifestos YAML no cluster
+  deploy:
+    name: Deploy (cluster + banco + manifestos)
+    needs: docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Instalar Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Instalar kubectl
+        uses: azure/setup-kubectl@v4
+
+      # Terraform provisiona o cluster kind E o banco de dados (itens 4 e 5).
+      - name: Terraform - deploy do cluster e do banco de dados
+        working-directory: infra
+        run: |
+          terraform init
+          terraform apply -auto-approve
+
+      - name: Configurar kubeconfig
+        working-directory: infra
+        run: echo "KUBECONFIG=$(terraform output -raw kubeconfig_path)" >> "$GITHUB_ENV"
+
+      # Aplicacao dos manifestos da aplicacao (item 6).
+      - name: Aplicacao dos manifestos YAML no cluster
+        run: |
+          kubectl apply -f k8s/
+          kubectl rollout status deployment/garageos-api -n garageos --timeout=180s
+
+      - name: Smoke test (API respondendo)
+        run: |
+          curl --retry 15 --retry-delay 5 --retry-all-errors -fsS \
+            http://localhost:30080/swagger/index.html > /dev/null
+          echo "API respondeu 200 em /swagger"
+
+      - name: Estado final do cluster
+        if: always()
+        run: kubectl get all,hpa -n garageos || true
