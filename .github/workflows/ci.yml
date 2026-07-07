@@ -4,10 +4,9 @@ on:
   pull_request:
     branches:
       - main
-      - teste-ruan1
   push:
     branches:
-      - teste-ruan1
+      - main
 
 jobs:
   build-and-test:
