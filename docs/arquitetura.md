@@ -1,8 +1,8 @@
 # GarageOS — Desenho da Arquitetura Proposta
 
-Componentes da aplicação (Clean Architecture) e infraestrutura provisionada (Terraform + Kubernetes) para a API de gestão de oficina automotiva.
+Componentes da aplicação (Clean Architecture), pipeline de CI/CD (GitHub Actions) e infraestrutura provisionada (Terraform + Kubernetes) para a API de gestão de oficina automotiva.
 
-> Branch `main` · Runtime .NET 10 / ASP.NET Core · Banco PostgreSQL 16 · Orquestração Kubernetes (kind) · IaC Terraform
+> Branch `main` · Runtime .NET 10 / ASP.NET Core · Banco PostgreSQL 16 · Orquestração Kubernetes (kind) · IaC Terraform · CI/CD GitHub Actions
 
 ![Desenho da arquitetura do GarageOS](./arquitetura.png)
 
@@ -59,7 +59,34 @@ flowchart TB
 
 ---
 
-## 2. Infraestrutura como Código (Terraform)
+## 2. Pipeline de CI/CD
+
+Dois workflows em `.github/workflows/`: `ci.yml` valida pull requests e pushes; `cd.yml` roda no push para `main`
+(ou `workflow_dispatch`) e executa a entrega completa — build, testes, imagem, provisionamento via Terraform e
+aplicação dos manifestos. `cd.yml` usa `concurrency` para cancelar runs anteriores em andamento no mesmo ref.
+
+```mermaid
+flowchart TB
+    subgraph CI["ci.yml — pull_request + push → main"]
+        direction LR
+        CIB["dotnet build"] --> CIT["Testes unitários\n+ integração"] --> CID["docker build\n(validação local)"]
+    end
+
+    subgraph CD["cd.yml — push → main · workflow_dispatch"]
+        direction TB
+        J1["1 · build-test\ndotnet build + testes unitários + integração"]
+        J2["2 · docker\nBuildx → login Docker Hub →\npush garageosfiap/garageos-api:latest e :sha"]
+        J3["3 · deploy\nterraform apply (infra/) → kubectl apply -f k8s/ →\nrollout status → smoke test GET /swagger → kubectl get all,hpa"]
+        J1 --> J2 --> J3
+    end
+```
+
+> O job `deploy` de `cd.yml` é quem executa, em sequência, o `terraform apply` e o `kubectl apply -f k8s/`
+> detalhados nas seções 3 e 4 — hoje esse fluxo é 100% automatizado, sem etapas manuais.
+
+---
+
+## 3. Infraestrutura como Código (Terraform)
 
 O diretório `infra/` provisiona, via Terraform, a **base** do ambiente: cluster Kubernetes, namespace, metrics-server
 e banco de dados. A aplicação em si (Deployment/Service/HPA/ConfigMap/Secret da API) **não** é provisionada pelo
@@ -84,19 +111,16 @@ flowchart TB
     TF --> C4["kubernetes_config_map/secret\ndb_config · db_secret"]
     TF --> C5["kubectl_manifest.postgres_*\nPVC · Service · StatefulSet"]
 
-    CICD["kubectl apply -f k8s/\n(CI/CD — hoje manual)"]
+    CICD["kubectl apply -f k8s/\n(job deploy de cd.yml)"]
     CICD --> A1["Deployment/Service/HPA\nConfigMap/Secret da API"]
 
     C2 -.->|namespace pronto| CICD
     C5 -.->|banco pronto| CICD
 ```
 
-> `.github/workflows/` já existe no repositório mas ainda está vazio — o `kubectl apply -f k8s/` descrito no
-> README de `infra/` hoje é executado manualmente, não por uma pipeline automatizada.
-
 ---
 
-## 3. Infraestrutura Provisionada (Kubernetes)
+## 4. Infraestrutura Provisionada (Kubernetes)
 
 Produção roda no cluster kind criado pelo Terraform: a imagem publicada no Docker Hub é implantada como Deployment com
 autoscaling, exposta via Service NodePort, e persiste dados em um StatefulSet PostgreSQL com volume dedicado.
@@ -143,13 +167,16 @@ flowchart TB
 ```
 
 **Legenda**: seta sólida = fluxo de requisição/dados · seta tracejada = configuração, montagem, pull externo ou monitoramento.
-Os rótulos **Terraform** / **CI/CD** em cada objeto indicam quem o provisiona (ver seção 2).
+Os rótulos **Terraform** / **CI/CD** em cada objeto indicam quem o provisiona (ver seções 2 e 3).
 
 ---
 
 ## Observações
 
 - O cluster é um `kind` (Kubernetes-in-Docker) local, não um provedor cloud — adequado ao escopo do curso; os módulos Terraform (providers `kubernetes`/`helm`/`kubectl`) portariam para EKS/AKS/GKE trocando principalmente `cluster.tf`.
+- A divisão de responsabilidade é explícita e hoje 100% automatizada: o job `deploy` de `cd.yml` roda `terraform apply` (base) e depois `kubectl apply -f k8s/` (aplicação) a cada push em `main` — sem etapas manuais.
+- Como `cd.yml` roda `terraform apply` a cada push, o runner do GitHub Actions recria o cluster `kind` do zero em cada execução — não há cluster persistente entre runs; mantém o pipeline idempotente, mas custa tempo de build.
+- O smoke test do job `deploy` faz `curl` em `/swagger/index.html` como proxy de saúde, já que a API ainda não expõe um endpoint `/health` dedicado — a mesma lacuna que faz as probes do Deployment serem TCP puras.
+- Publicar a imagem no Docker Hub (job `docker`) depende dos secrets `DOCKERHUB_USERNAME` e `DOCKERHUB_TOKEN` configurados no repositório GitHub.
 - Ambiente local de desenvolvimento também pode usar `docker-compose.yml` (postgres, pgadmin, api, sonarqube-db, sonarqube) como alternativa ao cluster K8s — não representado aqui por ser um ambiente à parte.
-- As probes do Deployment são TCP puras porque a API ainda não expõe um endpoint `/health`; um readiness/liveness HTTP traria diagnóstico mais preciso.
 - Os Secrets (app e banco) guardam os valores em base64 (não criptografado) — considerar um cofre externo (ex. Sealed Secrets, Vault) antes de expor o repositório publicamente.
