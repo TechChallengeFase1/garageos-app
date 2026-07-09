@@ -9,7 +9,6 @@ name: CD
 #     metrics-server + banco de dados (IaC).
 #   - Esta pipeline aplica os manifestos da APLICACAO (k8s/): ConfigMap, Secret,
 #     Deployment, Service e HPA (CI/CD).
-#     Teste CI/CD
 
 on:
   push:
