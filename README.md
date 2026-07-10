@@ -90,7 +90,7 @@ SONAR_DB_USER=sonar
 SONAR_DB_PASSWORD=sonarsenha123
 SONAR_TOKEN=
 SONAR_HOST_URL=http://localhost:9000
-SONAR_PROJECT_KEY=GarageOS
+SONAR_PROJECT_KEY=GarageOSToken // chave do projeto no SonarQube, geralmente o nome do projeto, por exemplo: GarageOSProject
 ```
 
 ### 2. Subir os containers
