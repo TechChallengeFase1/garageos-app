@@ -148,18 +148,11 @@ docker compose down -v
 
 ---
 
-## Endpoints principais
+## Documentação da API
 
-Coleção Postman pronta em [Code/Postman/GarageOS.postman_collection.json](Code/Postman/GarageOS.postman_collection.json).
+A documentação interativa está disponível via Swagger em `http://localhost:8080/swagger` após subir o ambiente. Para explorar e testar os endpoints, importe a coleção Postman pronta: [Code/Postman/GarageOS.postman_collection.json](Code/Postman/GarageOS.postman_collection.json).
 
-| Recurso | Endpoint base | Operações |
-|---|---|---|
-| Auth | `/api/Auth` | login |
-| Clientes | `/api/Clientes` | CRUD |
-| Veículos | `/api/Veiculos` | CRUD + vincular cliente |
-| Serviços | `/api/Servicos` | CRUD |
-| Estoques | `/api/Estoques` | CRUD |
-| Ordens de Serviço | `/api/OrdensDeServico` | criar, listar, adicionar serviços/peças, alterar status, gerar/enviar orçamento, registrar resposta do cliente, **aging**, **acompanhamento público** |
+
 
 ---
 
@@ -192,8 +185,6 @@ cd Code; ./sonar-scan.ps1
 ```
 
 O resultado aparece em <http://localhost:9000>. Pré-requisitos: `dotnet-sonarscanner` instalado como ferramenta global e `SONAR_TOKEN` preenchido no `.env`.
-
-Mais detalhes em [Documentação/Fase 1/SONARQUBE.md](Documentação/Fase%201/SONARQUBE.md).
 
 ---
 
