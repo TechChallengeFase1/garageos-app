@@ -79,7 +79,7 @@ POSTGRES_DB=GarageOS
 PGADMIN_EMAIL=admin@garageos.com
 PGADMIN_DEFAULT_PASSWORD=dtsx
 
-JWT_SECRET_KEY=troque-esta-chave-em-ambientes-reais
+JWT_SECRET_KEY=GarageOS@SuperSecretKey#2026!XpTo
 JWT_ISSUER=GarageOS.Api
 JWT_AUDIENCE=GarageOS.Client
 
