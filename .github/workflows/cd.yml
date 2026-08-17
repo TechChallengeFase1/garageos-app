@@ -1,14 +1,25 @@
 name: CD
 
-# Pipeline de entrega continua: roda no merge para a main e executa o fluxo
-# completo exigido no Tech Challenge (build, testes, imagem, deploy do cluster,
-# deploy do banco e aplicacao dos manifestos da app).
+# Pipeline de entrega continua: build, testes e publicacao da imagem.
 #
-# Divisao de responsabilidades (conforme orientacao do professor):
-#   - Terraform (infra/) provisiona a base: cluster kind + namespace +
-#     metrics-server + banco de dados (IaC).
-#   - Esta pipeline aplica os manifestos da APLICACAO (k8s/): ConfigMap, Secret,
-#     Deployment, Service e HPA (CI/CD).
+# ESTADO TRANSITORIO - migracao de kind local para AWS EKS (Fase 3).
+#
+# O job de deploy foi removido neste commit. Ele rodava `terraform apply` em
+# `infra/`, pasta que saiu deste repositorio no PR #35 (a infraestrutura passou
+# para garageos-infra-k8s e garageos-infra-database), e aplicava manifestos num
+# cluster kind que so existia na maquina local - o runner do GitHub nunca teria
+# esse cluster, e o smoke test em localhost:30080 nunca responderia.
+#
+# Divisao de responsabilidades (mantida):
+#   - Terraform (repos de infra) entrega cluster vazio + banco vazio.
+#   - Esta pipeline aplica os manifestos da APLICACAO (k8s/).
+#
+# O deploy sera reescrito quando o EKS existir, com:
+#   - autenticacao na AWS via OIDC (sem access key estatica);
+#   - `aws eks update-kubeconfig` para obter acesso ao cluster;
+#   - manifestos de k8s/ com a tag da imagem deste commit (nao :latest);
+#   - migrations do EF Core como Job, antes do rollout (com HPA, N pods
+#     aplicando migration em paralelo vira corrida).
 
 on:
   push:
@@ -75,48 +86,3 @@ jobs:
           tags: |
             ${{ env.IMAGE }}:latest
             ${{ env.IMAGE }}:${{ github.sha }}
-
-  # 4) Deploy no cluster Kubernetes + 5) Deploy do banco de dados
-  #    + 6) Aplicacao dos manifestos YAML no cluster
-  deploy:
-    name: Deploy (cluster + banco + manifestos)
-    needs: docker
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Instalar Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_wrapper: false
-
-      - name: Instalar kubectl
-        uses: azure/setup-kubectl@v4
-
-      # Terraform provisiona o cluster kind E o banco de dados (itens 4 e 5).
-      - name: Terraform - deploy do cluster e do banco de dados
-        working-directory: infra
-        run: |
-          terraform init
-          terraform apply -auto-approve
-
-      - name: Configurar kubeconfig
-        working-directory: infra
-        run: echo "KUBECONFIG=$(terraform output -raw kubeconfig_path)" >> "$GITHUB_ENV"
-
-      # Aplicacao dos manifestos da aplicacao (item 6).
-      - name: Aplicacao dos manifestos YAML no cluster
-        run: |
-          kubectl apply -f k8s/
-          kubectl rollout status deployment/garageos-api -n garageos --timeout=180s
-
-      - name: Smoke test (API respondendo)
-        run: |
-          curl --retry 15 --retry-delay 5 --retry-all-errors -fsS \
-            http://localhost:30080/swagger/index.html > /dev/null
-          echo "API respondeu 200 em /swagger"
-
-      - name: Estado final do cluster
-        if: always()
-        run: kubectl get all,hpa -n garageos || true
