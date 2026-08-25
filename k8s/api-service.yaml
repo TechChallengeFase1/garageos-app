@@ -5,10 +5,14 @@ metadata:
   namespace: garageos
   annotations:
     # Network Load Balancer (camada 4) em vez do Classic Load Balancer, que e o
-    # padrao herdado do EKS. O NLB e mais barato, sobe em ~2 min contra ~5 do
-    # CLB, e o CLB esta em caminho de descontinuacao na AWS.
-    service.beta.kubernetes.io/aws-load-balancer-type: "external"
-    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
+    # padrao herdado do EKS. Mais barato, sobe mais rapido, e o CLB esta em
+    # caminho de descontinuacao na AWS.
+    #
+    # ATENCAO ao valor: "nlb" e provisionado pelo cloud controller manager que
+    # ja vem no EKS. O valor "external" delega ao AWS Load Balancer Controller,
+    # que e um add-on separado - se ele nao estiver instalado, o Service fica
+    # em <pending> para sempre, parado em "Ensuring load balancer", sem erro.
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
     service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
 spec:
   # LoadBalancer, e nao mais NodePort.
