@@ -30,7 +30,9 @@ titulo() { printf '\n\033[1m%s\033[0m\n' "$1"; }
 # checar <descricao> <esperado> <obtido>
 checar() {
   local descricao="$1" esperado="$2" obtido="$3"
-  if [ "$esperado" = "$obtido" ]; then
+  # Vazio nunca e aprovacao: significa que a consulta falhou, nao que o valor
+  # bate. Sem isto, um ambiente sem credencial "passaria" em varios checks.
+  if [ -n "$obtido" ] && [ "$esperado" = "$obtido" ]; then
     printf '  %s %-52s %s\n' "$(verde OK)" "$descricao" "$(cinza "$obtido")"
     ok=$((ok+1))
   else
@@ -54,6 +56,34 @@ checar_nao_vazio() {
 ssm() { aws ssm get-parameter --name "$1" --query Parameter.Value --output text 2>/dev/null; }
 
 printf '\033[1mValidacao da solucao GarageOS\033[0m  (%s / %s)\n' "$PROJETO" "$AMBIENTE"
+# ─── Pre-requisitos ──────────────────────────────────────────────────────────
+#
+# Sem isto, rodar no ambiente errado (WSL sem credencial, kubectl apontando
+# para outro cluster) produz uma tela cheia de falhas que parecem problema da
+# infraestrutura - quando o problema e o terminal.
+
+CONTA=$(aws sts get-caller-identity --query Account --output text 2>/dev/null)
+if [ -z "$CONTA" ]; then
+  printf '\n  %s\n' "$(vermelho 'A AWS CLI nao esta autenticada neste terminal.')"
+  printf '  Rode: aws sts get-caller-identity\n'
+  printf '  Se falhar, use o terminal onde as credenciais foram configuradas\n'
+  printf '  (PowerShell ou Git Bash do Windows), nao o WSL.\n\n'
+  exit 2
+fi
+
+CONTEXTO=$(kubectl config current-context 2>/dev/null)
+case "$CONTEXTO" in
+  *"$PROJETO-$AMBIENTE"*) ;;
+  *)
+    printf '\n  %s\n' "$(vermelho 'O kubectl nao aponta para o cluster do projeto.')"
+    printf '  contexto atual : %s\n' "${CONTEXTO:-nenhum}"
+    printf '  para corrigir  : aws eks update-kubeconfig --name %s-%s --region %s\n\n' \
+      "$PROJETO" "$AMBIENTE" "$REGIAO"
+    exit 2
+    ;;
+esac
+
+printf '  ambiente: conta %s | contexto %s\n' "$CONTA" "${CONTEXTO##*/}"
 
 # ─────────────────────────────────────────────────────────────────────────────
 titulo "1. Fundacao (bootstrap)"
@@ -89,9 +119,12 @@ REGRAS=$(aws ec2 describe-security-group-rules --filters "Name=group-id,Values=$
   --query 'length(SecurityGroupRules[?IsEgress==`false`])' --output text 2>/dev/null)
 checar "Banco aceita UMA unica origem (o cracha)" "1" "$REGRAS"
 
-CIDR=$(aws ec2 describe-security-group-rules --filters "Name=group-id,Values=$SG_RDS" \
-  --query 'SecurityGroupRules[?IsEgress==`false`].CidrIpv4' --output text 2>/dev/null)
-checar "E essa origem nao e uma faixa de IP" "None" "${CIDR:-None}"
+# Verificacao positiva: a origem da regra e o proprio Security Group "cracha",
+# nao uma faixa de IP. Afirmar QUAL e a origem prova mais do que constatar a
+# ausencia de um CIDR.
+CRACHA=$(ssm "/$PROJETO/$AMBIENTE/rds/client-security-group-id")
+ORIGEM=$(aws ec2 describe-security-group-rules --filters "Name=group-id,Values=$SG_RDS"   --query 'SecurityGroupRules[?IsEgress==`false`].ReferencedGroupInfo.GroupId' --output text 2>/dev/null)
+checar "E essa origem e o Security Group cracha" "$CRACHA" "$ORIGEM"
 
 checar_nao_vazio "Credenciais no Secrets Manager" \
   "$(aws secretsmanager describe-secret --secret-id "$PROJETO-$AMBIENTE/rds/master" \
@@ -110,7 +143,7 @@ checar "Autenticacao por API (aws-auth desabilitado)" "API" \
 NOS=$(kubectl get nodes --no-headers 2>/dev/null | grep -c " Ready ")
 checar_nao_vazio "Nos prontos" "${NOS:-0}"
 
-CRACHA=$(ssm "/$PROJETO/$AMBIENTE/rds/client-security-group-id")
+# CRACHA ja foi lido na secao 2.
 COM_CRACHA=$(aws ec2 describe-instances \
   --filters "Name=tag:eks:cluster-name,Values=$CLUSTER" "Name=instance-state-name,Values=running" \
   --query "length(Reservations[].Instances[?SecurityGroups[?GroupId=='$CRACHA']])" --output text 2>/dev/null)
@@ -130,7 +163,7 @@ checar "Deployment com todas as replicas prontas" \
   "$(kubectl get deploy garageos-api -n "$NS" -o jsonpath='{.status.readyReplicas}' 2>/dev/null)"
 
 IMAGEM=$(kubectl get deploy garageos-api -n "$NS" -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null)
-if [[ "$IMAGEM" == *":latest" ]]; then
+if [ -z "$IMAGEM" ] || [[ "$IMAGEM" == *":latest" ]]; then
   printf '  %s %-52s %s\n' "$(vermelho XX)" "Imagem fixada por commit (nao :latest)" "$IMAGEM"; falhou=$((falhou+1))
 else
   printf '  %s %-52s %s\n' "$(verde OK)" "Imagem fixada por commit (nao :latest)" "$(cinza "${IMAGEM##*:}")"; ok=$((ok+1))
