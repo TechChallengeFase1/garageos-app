@@ -27,18 +27,32 @@ spec:
                 name: garageos-config
             - secretRef:
                 name: garageos-secret
-          # Sem endpoint /health na API: usamos probe TCP na porta 8080
+          # Probes HTTP de verdade, atendendo ao requisito "healthchecks e uptime".
+          #
+          # A separacao entre os dois endpoints e deliberada:
+          #
+          #   /health/ready  consulta o PostgreSQL. Se o banco cair, o pod sai
+          #                  do balanceamento e volta sozinho quando o banco
+          #                  voltar. Ninguem e reiniciado.
+          #
+          #   /health/live   NAO consulta o banco. Se consultasse, uma oscilacao
+          #                  do RDS reprovaria a probe em TODOS os pods ao mesmo
+          #                  tempo e o Kubernetes mataria a aplicacao inteira -
+          #                  transformando instabilidade de banco em queda total.
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /health/ready
               port: 8080
             initialDelaySeconds: 10
             periodSeconds: 10
             failureThreshold: 6
           livenessProbe:
-            tcpSocket:
+            httpGet:
+              path: /health/live
               port: 8080
             initialDelaySeconds: 20
             periodSeconds: 15
+            failureThreshold: 3
           # requests.cpu e obrigatorio para o HPA calcular a % de utilizacao
           resources:
             requests:

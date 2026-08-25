@@ -9,9 +9,12 @@ using GarageOS.Domain.Repositories;
 using GarageOS.Infrastructure.Data;
 using GarageOS.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Serilog;
 using System.Text;
 
 namespace GarageOS.Api.Extensions;
@@ -84,13 +87,93 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
+    /// <summary>Tag que marca os health checks pertencentes à prontidão (readiness)</summary>
+    public const string TagProntidao = "ready";
+
     /// <summary>Registra os middlewares da aplicação GarageOS</summary>
+    /// <remarks>
+    /// A ordem importa. O correlation ID vem primeiro para que TUDO abaixo dele
+    /// — inclusive o log de erro do ExceptionMiddleware — saia carimbado com o
+    /// identificador da requisição.
+    /// </remarks>
     public static IApplicationBuilder UseGarageOSMiddlewares(
         this IApplicationBuilder app)
     {
+        app.UseMiddleware<CorrelationIdMiddleware>();
+
+        // Uma linha estruturada por requisição, com rota, status e duração.
+        // Como roda dentro do escopo do correlation ID, herda o identificador.
+        app.UseSerilogRequestLogging();
+
         app.UseMiddleware<ExceptionMiddleware>();
 
         return app;
+    }
+
+    /// <summary>Registra os health checks de liveness e readiness</summary>
+    public static IServiceCollection AddGarageOSHealthChecks(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var connectionString = configuration.GetConnectionString("DefaultConnection")!;
+
+        services
+            .AddHealthChecks()
+            .AddNpgSql(
+                connectionString,
+                name: "postgres",
+                tags: [TagProntidao]);
+
+        return services;
+    }
+
+    /// <summary>Mapeia os endpoints <c>/health/live</c> e <c>/health/ready</c></summary>
+    /// <remarks>
+    /// A distinção entre os dois é deliberada e importa em produção.
+    ///
+    /// O liveness NÃO consulta o banco: se o RDS oscilar, o Kubernetes mataria
+    /// todos os pods ao mesmo tempo, transformando uma instabilidade de banco
+    /// numa queda total da aplicação.
+    ///
+    /// O readiness consulta: o pod sai do balanceamento enquanto o banco não
+    /// responde, e volta sozinho quando ele voltar. Ninguém é reiniciado.
+    /// </remarks>
+    public static IEndpointRouteBuilder MapGarageOSHealthChecks(
+        this IEndpointRouteBuilder endpoints)
+    {
+        endpoints.MapHealthChecks("/health/live", new HealthCheckOptions
+        {
+            // Predicate falso = nenhum check roda. Responde 200 se o processo
+            // consegue atender uma requisição HTTP, que é o que liveness mede.
+            Predicate = _ => false,
+            ResponseWriter = EscreverRespostaHealthAsync
+        });
+
+        endpoints.MapHealthChecks("/health/ready", new HealthCheckOptions
+        {
+            Predicate = check => check.Tags.Contains(TagProntidao),
+            ResponseWriter = EscreverRespostaHealthAsync
+        });
+
+        return endpoints;
+    }
+
+    /// <summary>Serializa o resultado dos health checks em JSON legível</summary>
+    private static Task EscreverRespostaHealthAsync(HttpContext context, HealthReport report)
+    {
+        var resposta = new
+        {
+            status = report.Status.ToString(),
+            duracaoMs = Math.Round(report.TotalDuration.TotalMilliseconds, 1),
+            checks = report.Entries.Select(entrada => new
+            {
+                nome = entrada.Key,
+                status = entrada.Value.Status.ToString(),
+                erro = entrada.Value.Exception?.Message
+            })
+        };
+
+        return context.Response.WriteAsJsonAsync(resposta);
     }
 
     /// <summary>Configura a autenticação JWT com validação de token</summary>

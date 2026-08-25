@@ -3,13 +3,38 @@ kind: Service
 metadata:
   name: garageos-api
   namespace: garageos
+  annotations:
+    # Network Load Balancer (camada 4) em vez do Classic Load Balancer, que e o
+    # padrao herdado do EKS. O NLB e mais barato, sobe em ~2 min contra ~5 do
+    # CLB, e o CLB esta em caminho de descontinuacao na AWS.
+    service.beta.kubernetes.io/aws-load-balancer-type: "external"
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
 spec:
-  # NodePort: expoe a API em http://localhost:30080 no Docker Desktop
-  type: NodePort
+  # LoadBalancer, e nao mais NodePort.
+  #
+  # O NodePort 30080 era heranca do kind, onde o cluster era um container e a
+  # porta era mapeada para localhost. No EKS isso nao da URL nenhuma: os nos
+  # tem IP publico, mas nada distribui trafego entre eles, e o IP muda quando o
+  # no e substituido.
+  #
+  # Com LoadBalancer, a AWS provisiona um NLB de verdade e o Kubernetes escreve
+  # o hostname dele em status.loadBalancer. E esse hostname que vira a URL da
+  # API - e, na Fase 5, o destino do API Gateway.
+  #
+  # CUSTO: ~US$ 18/mes enquanto existir. O `terraform destroy` do cluster NAO o
+  # remove, porque quem o criou foi o Kubernetes, nao o Terraform. Apague o
+  # Service (ou o namespace) antes de destruir o cluster, senao o NLB fica
+  # orfao cobrando - e como ele tem ENIs na VPC, tambem trava a destruicao.
+  type: LoadBalancer
+
+  # Preserva o IP de origem do cliente ate o pod. Sem isso todo request parece
+  # vir do IP do no, e os logs perdem a origem real.
+  externalTrafficPolicy: Local
+
   selector:
     app: garageos-api
   ports:
     - port: 80
       targetPort: 8080
-      nodePort: 30080
       name: http

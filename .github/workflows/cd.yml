@@ -1,37 +1,32 @@
 name: CD
 
-# Pipeline de entrega continua: build, testes e publicacao da imagem.
+# Pipeline de entrega continua: build, testes, imagem e deploy no EKS.
 #
-# ESTADO TRANSITORIO - migracao de kind local para AWS EKS (Fase 3).
+# Autenticacao na AWS por OIDC. Nenhuma credencial estatica da AWS existe neste
+# repositorio - nem em secrets, nem em variaveis.
 #
-# O job de deploy foi removido neste commit. Ele rodava `terraform apply` em
-# `infra/`, pasta que saiu deste repositorio no PR #35 (a infraestrutura passou
-# para garageos-infra-k8s e garageos-infra-database), e aplicava manifestos num
-# cluster kind que so existia na maquina local - o runner do GitHub nunca teria
-# esse cluster, e o smoke test em localhost:30080 nunca responderia.
-#
-# Divisao de responsabilidades (mantida):
-#   - Terraform (repos de infra) entrega cluster vazio + banco vazio.
-#   - Esta pipeline aplica os manifestos da APLICACAO (k8s/).
-#
-# O deploy sera reescrito quando o EKS existir, com:
-#   - autenticacao na AWS via OIDC (sem access key estatica);
-#   - `aws eks update-kubeconfig` para obter acesso ao cluster;
-#   - manifestos de k8s/ com a tag da imagem deste commit (nao :latest);
-#   - migrations do EF Core como Job, antes do rollout (com HPA, N pods
-#     aplicando migration em paralelo vira corrida).
+# O deploy descobre TUDO em tempo de execucao, pelo SSM Parameter Store: nome do
+# cluster, namespace e onde estao os segredos. Nada disso esta escrito a mao
+# aqui, entao recriar a infraestrutura do zero nao exige editar este arquivo.
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
-concurrency:
-  group: cd-${{ github.ref }}
-  cancel-in-progress: true
+permissions:
+  id-token: write
+  contents: read
 
 env:
   IMAGE: garageosfiap/garageos-api
+  AWS_REGION: us-east-1
+  AWS_ROLE: arn:aws:iam::266380777968:role/garageos-github-actions
+  AMBIENTE: producao
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   # 1) Build da aplicacao + 2) Execucao dos testes automatizados
@@ -86,3 +81,161 @@ jobs:
           tags: |
             ${{ env.IMAGE }}:latest
             ${{ env.IMAGE }}:${{ github.sha }}
+
+  # 4) Deploy no cluster EKS
+  deploy:
+    name: Deploy no EKS
+    needs: docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # Se o environment tiver required reviewers, o deploy fica pendente
+    # esperando aprovacao em vez de disparar sozinho.
+    environment: producao
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Sem access key: o runner apresenta um token OIDC e veste a role.
+      - name: Autenticar na AWS via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE }}
+          role-session-name: cd-app-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Instalar kubectl
+        uses: azure/setup-kubectl@v4
+
+      # O contrato entre os repositorios. Se a infraestrutura nao estiver de pe,
+      # falha aqui, antes de tocar em qualquer coisa.
+      - name: Descobrir a infraestrutura no SSM
+        id: infra
+        run: |
+          ler() { aws ssm get-parameter --name "$1" --query Parameter.Value --output text; }
+
+          CLUSTER=$(ler "/garageos/${AMBIENTE}/eks/cluster-name")
+          NAMESPACE=$(ler "/garageos/${AMBIENTE}/eks/namespace")
+          RDS_SECRET=$(ler "/garageos/${AMBIENTE}/rds/secret-arn")
+          APP_SECRET=$(ler "/garageos/app/secret-arn")
+
+          echo "cluster=$CLUSTER" >> "$GITHUB_OUTPUT"
+          echo "namespace=$NAMESPACE" >> "$GITHUB_OUTPUT"
+          echo "rds_secret=$RDS_SECRET" >> "$GITHUB_OUTPUT"
+          echo "app_secret=$APP_SECRET" >> "$GITHUB_OUTPUT"
+
+          echo "Cluster: $CLUSTER | Namespace: $NAMESPACE"
+
+      - name: Configurar acesso ao cluster
+        run: |
+          aws eks update-kubeconfig --name "${{ steps.infra.outputs.cluster }}" --region "$AWS_REGION"
+          kubectl get nodes
+
+      # Os segredos NAO vivem no Git. Sao lidos do Secrets Manager aqui e viram
+      # um Secret do Kubernetes, criado no momento do deploy.
+      #
+      # O par "--dry-run=client -o yaml | kubectl apply -f -" torna a operacao
+      # idempotente: cria na primeira vez, atualiza nas seguintes.
+      #
+      # Os add-mask registram os valores como segredos do Actions: se algum
+      # comando ecoar por engano, sai mascarado no log.
+      - name: Criar o Secret a partir do AWS Secrets Manager
+        run: |
+          RDS_JSON=$(aws secretsmanager get-secret-value --secret-id "${{ steps.infra.outputs.rds_secret }}" --query SecretString --output text)
+          APP_JSON=$(aws secretsmanager get-secret-value --secret-id "${{ steps.infra.outputs.app_secret }}" --query SecretString --output text)
+
+          CONN=$(printf '%s' "$RDS_JSON" | jq -r .connectionString)
+          JWT=$(printf '%s' "$APP_JSON" | jq -r .jwtSecretKey)
+          ADMIN=$(printf '%s' "$APP_JSON" | jq -r .adminPassword)
+
+          echo "::add-mask::$CONN"
+          echo "::add-mask::$JWT"
+          echo "::add-mask::$ADMIN"
+
+          kubectl create secret generic garageos-secret \
+            --namespace "${{ steps.infra.outputs.namespace }}" \
+            --from-literal=ConnectionStrings__DefaultConnection="$CONN" \
+            --from-literal=Jwt__SecretKey="$JWT" \
+            --from-literal=Admin__Password="$ADMIN" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Aplicar a configuracao nao-sensivel
+        run: kubectl apply -f k8s/configmap.yaml
+
+      # A tag "latest" nao serve para deploy: o kubectl nao detecta mudanca no
+      # manifesto, o rollout nao acontece, e ninguem consegue dizer qual versao
+      # esta no ar. A tag do commit resolve as duas coisas.
+      - name: Fixar a tag do commit nos manifestos
+        run: |
+          sed -i "s|${IMAGE}:latest|${IMAGE}:${GITHUB_SHA}|g" k8s/api-deployment.yaml k8s/jobs/migrations-job.yaml
+          grep -h "image:" k8s/api-deployment.yaml k8s/jobs/migrations-job.yaml
+
+      # Migrations rodam ANTES do rollout, num Job separado. Com o HPA, deixar
+      # isso no startup faria varias replicas migrarem em paralelo.
+      #
+      # O delete e necessario porque a especificacao de um Job e imutavel:
+      # aplicar de novo com outra tag falharia com "field is immutable".
+      - name: Aplicar migrations (Job)
+        run: |
+          NS="${{ steps.infra.outputs.namespace }}"
+          kubectl delete job garageos-migrations -n "$NS" --ignore-not-found
+          kubectl apply -f k8s/jobs/migrations-job.yaml
+
+          if ! kubectl wait --for=condition=complete job/garageos-migrations -n "$NS" --timeout=300s; then
+            echo "::error::As migrations falharam. Log do Job abaixo."
+            kubectl logs job/garageos-migrations -n "$NS" --tail=50
+            exit 1
+          fi
+
+          kubectl logs job/garageos-migrations -n "$NS" --tail=20
+
+      # "kubectl apply -f k8s/" nao e recursivo, entao o Job em k8s/jobs/ nao e
+      # reaplicado aqui.
+      - name: Aplicar os manifestos da aplicacao
+        run: |
+          kubectl apply -f k8s/
+          kubectl rollout status deployment/garageos-api -n "${{ steps.infra.outputs.namespace }}" --timeout=300s
+
+      - name: Aguardar o Load Balancer
+        id: lb
+        run: |
+          NS="${{ steps.infra.outputs.namespace }}"
+          URL=""
+          for i in $(seq 1 30); do
+            URL=$(kubectl get svc garageos-api -n "$NS" -o jsonpath="{.status.loadBalancer.ingress[0].hostname}" 2>/dev/null || true)
+            if [ -n "$URL" ]; then break; fi
+            sleep 10
+          done
+
+          if [ -z "$URL" ]; then
+            echo "::warning::O Load Balancer ainda nao tem hostname. Pode levar mais alguns minutos."
+            exit 0
+          fi
+
+          echo "url=http://$URL" >> "$GITHUB_OUTPUT"
+          echo "Load Balancer: http://$URL"
+
+      # Prova que a aplicacao esta ATENDENDO, e nao apenas que os pods subiram.
+      - name: Smoke test
+        if: steps.lb.outputs.url != ''
+        run: |
+          curl --retry 20 --retry-delay 15 --retry-all-errors -fsS "${{ steps.lb.outputs.url }}/health/ready"
+          echo ""
+          echo "API respondendo em ${{ steps.lb.outputs.url }}"
+
+      - name: Resumo do deploy
+        if: always()
+        run: |
+          NS="${{ steps.infra.outputs.namespace }}"
+          {
+            echo "### Deploy - ${AMBIENTE}"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Cluster | ${{ steps.infra.outputs.cluster }} |"
+            echo "| Imagem | ${IMAGE}:${GITHUB_SHA} |"
+            echo "| URL | ${{ steps.lb.outputs.url }} |"
+            echo ""
+            kubectl get deploy,svc,hpa,pods -n "$NS" 2>&1 | head -30
+          } >> "$GITHUB_STEP_SUMMARY"
