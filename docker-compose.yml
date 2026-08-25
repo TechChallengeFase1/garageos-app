@@ -39,12 +39,19 @@ services:
     container_name: garageos-api
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      # Local roda uma instancia so, entao migrar no startup e conveniente.
+      # Em Kubernetes isto fica desligado - quem migra e o Job.
+      Database__MigrateOnStartup: "true"
       ConnectionStrings__DefaultConnection: Host=postgres;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       Jwt__SecretKey: ${JWT_SECRET_KEY}
       Jwt__Issuer: ${JWT_ISSUER}
       Jwt__Audience: ${JWT_AUDIENCE}
       Admin__Username: ${ADMIN_USERNAME}
       Admin__Password: ${ADMIN_PASSWORD}
+      # Observabilidade. Sem a chave, a aplicacao sobe normalmente - o agente
+      # apenas nao consegue reportar.
+      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:-}
+      NEW_RELIC_APP_NAME: ${NEW_RELIC_APP_NAME:-GarageOS API (local)}
     ports:
       - "8080:8080"
     depends_on:
