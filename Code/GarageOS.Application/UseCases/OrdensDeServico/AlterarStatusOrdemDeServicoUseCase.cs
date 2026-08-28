@@ -31,8 +31,19 @@ public class AlterarStatusOrdemDeServicoUseCase
         var minutosNoStatusAnterior =
             (DateTime.UtcNow - ordemDeServico.AtualizadoEm.ToUniversalTime()).TotalMinutes;
 
-        ordemDeServico.AlterarStatus(request.Status);
-        await _repository.AtualizarAsync(ordemDeServico);
+        try
+        {
+            ordemDeServico.AlterarStatus(request.Status);
+            await _repository.AtualizarAsync(ordemDeServico);
+        }
+        catch (Exception ex)
+        {
+            // Falha no processamento: tanto violacao de regra (transicao de
+            // status invalida) quanto erro de infraestrutura. E o sinal que
+            // alimenta o alerta - por isso e emitido antes de propagar.
+            _metricas.FalhaNoProcessamento(ordemDeServico.NumeroOS, ex.GetType().Name);
+            throw;
+        }
 
         // Este evento e a unica origem do dashboard "tempo medio por status".
         // Nenhuma ferramenta deduz isso de latencia de requisicao.

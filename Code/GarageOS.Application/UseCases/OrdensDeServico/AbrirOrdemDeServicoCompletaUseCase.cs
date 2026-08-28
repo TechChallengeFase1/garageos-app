@@ -76,7 +76,15 @@ public class AbrirOrdemDeServicoCompletaUseCase
         foreach (var peca in pecasValidadas)
             ordemDeServico.AdicionarEstoque(new OrdemDeServicoEstoque(ordemDeServico.Id, peca.EstoqueId, peca.Quantidade));
 
-        await _repository.AdicionarAsync(ordemDeServico);
+        try
+        {
+            await _repository.AdicionarAsync(ordemDeServico);
+        }
+        catch (Exception ex)
+        {
+            _metricas.FalhaNoProcessamento(ordemDeServico.NumeroOS, ex.GetType().Name);
+            throw;
+        }
 
         // Origem do dashboard "volume diario de ordens de servico". As
         // transacoes do APM contariam a REQUISICAO; este evento conta a OS.
