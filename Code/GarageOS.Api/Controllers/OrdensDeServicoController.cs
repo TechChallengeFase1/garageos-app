@@ -1,3 +1,4 @@
+using GarageOS.Application.Abstractions;
 using GarageOS.Application.DTOs.OrdensDeServico;
 using GarageOS.Application.UseCases.OrdensDeServico;
 using GarageOS.Application.Validators.OrdensDeServico;
@@ -18,6 +19,7 @@ public class OrdensDeServicoController : ControllerBase
     private readonly AdicionarServicoNaOSUseCase _adicionarServicoUseCase;
     private readonly AdicionarEstoqueNaOSUseCase _adicionarEstoqueUseCase;
     private readonly AlterarStatusOrdemDeServicoUseCase _alterarStatusUseCase;
+    private readonly IMetricasDeNegocio _metricas;
     private readonly AcompanharOrdemDeServicoUseCase _acompanharUseCase;
     private readonly GerarOrcamentoUseCase _gerarOrcamentoUseCase;
     private readonly EnviarOrcamentoUseCase _enviarOrcamentoUseCase;
@@ -38,6 +40,7 @@ public class OrdensDeServicoController : ControllerBase
         EnviarOrcamentoUseCase enviarOrcamentoUseCase,
         ResponderOrcamentoUseCase responderOrcamentoUseCase,
         AlterarStatusServicoNaOSUseCase alterarStatusServicoUseCase,
+        IMetricasDeNegocio metricas,
         CalcularAgingServicosUseCase calcularAgingUseCase)
     {
         _abrirCompletaUseCase = abrirCompletaUseCase;
@@ -46,6 +49,7 @@ public class OrdensDeServicoController : ControllerBase
         _adicionarServicoUseCase = adicionarServicoUseCase;
         _adicionarEstoqueUseCase = adicionarEstoqueUseCase;
         _alterarStatusUseCase = alterarStatusUseCase;
+        _metricas = metricas;
         _acompanharUseCase = acompanharUseCase;
         _gerarOrcamentoUseCase = gerarOrcamentoUseCase;
         _enviarOrcamentoUseCase = enviarOrcamentoUseCase;
@@ -268,7 +272,16 @@ public class OrdensDeServicoController : ControllerBase
         var validation = await validator.ValidateAsync(request);
 
         if (!validation.IsValid)
+        {
+            // Uma transicao recusada E uma falha no processamento daquela OS,
+            // ainda que o sistema tenha se comportado corretamente ao recusar.
+            // E o sinal que alimenta o alerta de falhas.
+            _metricas.FalhaNoProcessamento(
+                id.ToString(),
+                string.Join("; ", validation.Errors.Select(e => e.ErrorMessage)));
+
             return BadRequest(validation.Errors.Select(e => e.ErrorMessage));
+        }
 
         try
         {
