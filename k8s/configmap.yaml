@@ -10,3 +10,7 @@ data:
   Jwt__Issuer: "GarageOS.Api"
   Jwt__Audience: "GarageOS.Client"
   Admin__Username: "admin"
+  # Identifica esta aplicacao no New Relic. Nao e segredo - a license key,
+  # que e, vem pelo Secret. Nome distinto do usado no docker compose local,
+  # para os dados de desenvolvimento nao se misturarem aos do cluster.
+  NEW_RELIC_APP_NAME: "garageOS"

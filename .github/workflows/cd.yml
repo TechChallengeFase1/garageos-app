@@ -148,16 +148,22 @@ jobs:
           CONN=$(printf '%s' "$RDS_JSON" | jq -r .connectionString)
           JWT=$(printf '%s' "$APP_JSON" | jq -r .jwtSecretKey)
           ADMIN=$(printf '%s' "$APP_JSON" | jq -r .adminPassword)
+          # O agente do New Relic ja esta na imagem e le esta variavel do
+          # ambiente. Sem ela, ele sobe, registra "Please set your license key"
+          # e se desliga: a aplicacao funciona, mas nao reporta nada.
+          NEWRELIC=$(printf '%s' "$APP_JSON" | jq -r '.newRelicLicenseKey // empty')
 
           echo "::add-mask::$CONN"
           echo "::add-mask::$JWT"
           echo "::add-mask::$ADMIN"
+          [ -n "$NEWRELIC" ] && echo "::add-mask::$NEWRELIC"
 
           kubectl create secret generic garageos-secret \
             --namespace "${{ steps.infra.outputs.namespace }}" \
             --from-literal=ConnectionStrings__DefaultConnection="$CONN" \
             --from-literal=Jwt__SecretKey="$JWT" \
             --from-literal=Admin__Password="$ADMIN" \
+            --from-literal=NEW_RELIC_LICENSE_KEY="$NEWRELIC" \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Aplicar a configuracao nao-sensivel
