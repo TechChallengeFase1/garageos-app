@@ -1,3 +1,4 @@
+using GarageOS.Application.Abstractions;
 using GarageOS.Application.DTOs.OrdensDeServico;
 using GarageOS.Domain.Entities;
 using GarageOS.Domain.Exceptions;
@@ -8,10 +9,14 @@ namespace GarageOS.Application.UseCases.OrdensDeServico;
 public class AlterarStatusOrdemDeServicoUseCase
 {
     private readonly IOrdemDeServicoRepository _repository;
+    private readonly IMetricasDeNegocio _metricas;
 
-    public AlterarStatusOrdemDeServicoUseCase(IOrdemDeServicoRepository repository)
+    public AlterarStatusOrdemDeServicoUseCase(
+        IOrdemDeServicoRepository repository,
+        IMetricasDeNegocio metricas)
     {
         _repository = repository;
+        _metricas = metricas;
     }
 
     public async Task<OrdemDeServicoResponse> ExecutarAsync(Guid ordemDeServicoId, AlterarStatusRequest request)
@@ -20,8 +25,22 @@ public class AlterarStatusOrdemDeServicoUseCase
         if (ordemDeServico == null)
             throw new OrdemDeServicoNaoEncontradaException();
 
+        // Capturado ANTES da mudanca: depois do AlterarStatus o estado
+        // anterior nao existe mais em lugar nenhum.
+        var statusAnterior = ordemDeServico.Status.ToString();
+        var minutosNoStatusAnterior =
+            (DateTime.UtcNow - ordemDeServico.AtualizadoEm.ToUniversalTime()).TotalMinutes;
+
         ordemDeServico.AlterarStatus(request.Status);
         await _repository.AtualizarAsync(ordemDeServico);
+
+        // Este evento e a unica origem do dashboard "tempo medio por status".
+        // Nenhuma ferramenta deduz isso de latencia de requisicao.
+        _metricas.StatusAlterado(
+            ordemDeServico.NumeroOS,
+            statusAnterior,
+            ordemDeServico.Status.ToString(),
+            minutosNoStatusAnterior);
 
         return MapearParaResponse(ordemDeServico);
     }
