@@ -1,4 +1,5 @@
 using FluentAssertions;
+using GarageOS.Application.Abstractions;
 using GarageOS.Application.DTOs.OrdensDeServico;
 using GarageOS.Application.UseCases.OrdensDeServico;
 using GarageOS.Domain.Entities;
@@ -13,12 +14,35 @@ namespace GarageOS.UnitTests.Application.UseCases.OrdensDeServico;
 public class AlterarStatusOrdemDeServicoUseCaseTests
 {
     private readonly Mock<IOrdemDeServicoRepository> _repositoryMock;
+    private readonly Mock<IMetricasDeNegocio> _metricasMock;
     private readonly AlterarStatusOrdemDeServicoUseCase _useCase;
 
     public AlterarStatusOrdemDeServicoUseCaseTests()
     {
         _repositoryMock = new Mock<IOrdemDeServicoRepository>();
-        _useCase = new AlterarStatusOrdemDeServicoUseCase(_repositoryMock.Object);
+        _metricasMock = new Mock<IMetricasDeNegocio>();
+        _useCase = new AlterarStatusOrdemDeServicoUseCase(
+            _repositoryMock.Object,
+            _metricasMock.Object);
+    }
+
+    [Fact]
+    public async Task ExecutarAsync_AoAlterarStatus_DevePublicarEventoDeNegocio()
+    {
+        // Arrange
+        var ordemId = Guid.NewGuid();
+        var ordem = new OrdemDeServico("OS-2026-90001", Guid.NewGuid(), Guid.NewGuid());
+        _repositoryMock.Setup(r => r.ObterPorIdAsync(ordemId)).ReturnsAsync(ordem);
+
+        // Act
+        await _useCase.ExecutarAsync(ordemId, new AlterarStatusRequest { Status = StatusOrdemDeServico.Finalizada });
+
+        // Assert: sem este evento o dashboard "tempo medio por status" fica vazio.
+        _metricasMock.Verify(m => m.StatusAlterado(
+            ordem.NumeroOS,
+            It.IsAny<string>(),
+            StatusOrdemDeServico.Finalizada.ToString(),
+            It.IsAny<double>()), Times.Once);
     }
 
     [Fact]

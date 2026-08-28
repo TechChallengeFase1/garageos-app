@@ -6,7 +6,9 @@ using GarageOS.Application.UseCases.Servicos;
 using GarageOS.Application.UseCases.Veiculos;
 using GarageOS.Application.Validators.Veiculos;
 using GarageOS.Domain.Repositories;
+using GarageOS.Application.Abstractions;
 using GarageOS.Infrastructure.Data;
+using GarageOS.Infrastructure.Observabilidade;
 using GarageOS.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -38,6 +40,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEstoqueRepository, EstoqueRepository>();
         services.AddScoped<IOrdemDeServicoRepository, OrdemDeServicoRepository>();
         services.AddScoped<IOrcamentoRepository, OrcamentoRepository>();
+
+        // Publicacao de eventos de negocio. Singleton porque nao guarda estado
+        // por requisicao e o agente do New Relic e global ao processo.
+        services.AddSingleton<IMetricasDeNegocio, MetricasNewRelic>();
 
         return services;
     }
