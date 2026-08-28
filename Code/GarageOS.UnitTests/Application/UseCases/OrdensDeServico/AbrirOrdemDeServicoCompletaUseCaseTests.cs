@@ -1,4 +1,5 @@
 using FluentAssertions;
+using GarageOS.Application.Abstractions;
 using GarageOS.Application.DTOs.OrdensDeServico;
 using GarageOS.Application.UseCases.OrdensDeServico;
 using GarageOS.Domain.Entities;
@@ -19,6 +20,7 @@ public class AbrirOrdemDeServicoCompletaUseCaseTests
     private readonly Mock<IVeiculoRepository> _veiculoRepositoryMock;
     private readonly Mock<IServicoRepository> _servicoRepositoryMock;
     private readonly Mock<IEstoqueRepository> _estoqueRepositoryMock;
+    private readonly Mock<IMetricasDeNegocio> _metricasMock = new();
     private readonly AbrirOrdemDeServicoCompletaUseCase _useCase;
 
     public AbrirOrdemDeServicoCompletaUseCaseTests()
@@ -33,7 +35,8 @@ public class AbrirOrdemDeServicoCompletaUseCaseTests
             _clienteRepositoryMock.Object,
             _veiculoRepositoryMock.Object,
             _servicoRepositoryMock.Object,
-            _estoqueRepositoryMock.Object);
+            _estoqueRepositoryMock.Object,
+            _metricasMock.Object);
     }
 
     private static Endereco CriarEndereco()

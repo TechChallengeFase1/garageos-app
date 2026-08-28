@@ -1,3 +1,4 @@
+using GarageOS.Application.Abstractions;
 using GarageOS.Application.DTOs.OrdensDeServico;
 using GarageOS.Domain.Entities;
 using GarageOS.Domain.Exceptions;
@@ -13,19 +14,22 @@ public class AbrirOrdemDeServicoCompletaUseCase
     private readonly IVeiculoRepository _veiculoRepository;
     private readonly IServicoRepository _servicoRepository;
     private readonly IEstoqueRepository _estoqueRepository;
+    private readonly IMetricasDeNegocio _metricas;
 
     public AbrirOrdemDeServicoCompletaUseCase(
         IOrdemDeServicoRepository repository,
         IClienteRepository clienteRepository,
         IVeiculoRepository veiculoRepository,
         IServicoRepository servicoRepository,
-        IEstoqueRepository estoqueRepository)
+        IEstoqueRepository estoqueRepository,
+        IMetricasDeNegocio metricas)
     {
         _repository = repository;
         _clienteRepository = clienteRepository;
         _veiculoRepository = veiculoRepository;
         _servicoRepository = servicoRepository;
         _estoqueRepository = estoqueRepository;
+        _metricas = metricas;
     }
 
     public async Task<OrdemDeServicoResponse> ExecutarAsync(AbrirOrdemDeServicoCompletaRequest request)
@@ -73,6 +77,10 @@ public class AbrirOrdemDeServicoCompletaUseCase
             ordemDeServico.AdicionarEstoque(new OrdemDeServicoEstoque(ordemDeServico.Id, peca.EstoqueId, peca.Quantidade));
 
         await _repository.AdicionarAsync(ordemDeServico);
+
+        // Origem do dashboard "volume diario de ordens de servico". As
+        // transacoes do APM contariam a REQUISICAO; este evento conta a OS.
+        _metricas.OrdemDeServicoCriada(ordemDeServico.NumeroOS, ordemDeServico.ClienteId);
 
         return MapearParaResponse(ordemDeServico);
     }
