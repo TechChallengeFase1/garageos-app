@@ -52,7 +52,7 @@ Mapeamento dos requisitos obrigatórios para serviços AWS:
 - Custo de infraestrutura durante o desenvolvimento coberto pelos créditos da faculdade.
 - A própria redação do desafio já usa terminologia AWS (“Lambda” é citado literalmente como nome do primeiro repositório exigido), o que facilita o alinhamento entre o enunciado e a implementação.
 
-**Negativas / riscos**
+**Trade-offs conscientes**
 - **Custo residual do EKS**: o control plane cobra por hora independentemente do uso. Mitigação: `terraform destroy` da infraestrutura de Kubernetes fora das janelas de desenvolvimento/demonstração, reprovisionando via pipeline de CD quando necessário.
 - **Consumo dos créditos**: créditos educacionais costumam ter validade e teto de consumo. Mitigação: acompanhar o Billing/Cost Explorer periodicamente e preferir instâncias/node groups de menor custo (ex: `t3.medium`) para o cluster.
 - **Lock-in em nomenclatura e serviços AWS-específicos** (ex: uso de IAM, VPC, Security Groups) na documentação e no código de infraestrutura. Aceitável para o escopo acadêmico do projeto; não há requisito de portabilidade entre nuvens.

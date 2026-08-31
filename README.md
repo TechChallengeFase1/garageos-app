@@ -1,23 +1,41 @@
-# GarageOS
+# GarageOS — Aplicação
 
 Sistema de gestão para oficinas mecânicas — controle de clientes, veículos, serviços, estoque e ordens de serviço (OS), com fluxo completo de orçamento, execução e acompanhamento público pelo cliente.
 
 Projeto desenvolvido como **Tech Challenge** da Pós-graduação em Arquitetura de Software.
 
+> Este é o repositório da **aplicação**. A solução completa é composta por quatro repositórios — veja [Arquitetura da solução](#arquitetura-da-solução).
+
+---
+
+## Índice
+
+- [Objetivo](#objetivo)
+- [Stack](#stack)
+- [Arquitetura da solução](#arquitetura-da-solução)
+- [Documentação da API (Swagger)](#documentação-da-api-swagger)
+- [Como rodar localmente](#como-rodar-localmente)
+- [Como fazer o deploy na AWS](#como-fazer-o-deploy-na-aws)
+- [Health checks](#health-checks)
+- [Logs estruturados e observabilidade](#logs-estruturados-e-observabilidade)
+- [Escalabilidade (HPA)](#escalabilidade-hpa)
+- [Segredos](#segredos)
+- [Testes e qualidade](#testes-e-qualidade)
+- [Estrutura do repositório](#estrutura-do-repositório)
+- [Documentação de arquitetura](#documentação-de-arquitetura)
+
 ---
 
 ## Objetivo
 
-Entregar uma API REST robusta que cubra a operação ponta a ponta de uma oficina:
+Entregar uma API REST que cubra a operação ponta a ponta de uma oficina:
 
 - Cadastro de **clientes**, **veículos**, **serviços** e **itens de estoque**.
-- Criação e gestão de **ordens de serviço** (OS), com status, serviços executados e peças consumidas.
-- Fluxo de **orçamento**: geração, envio ao cliente, aprovação/recusa.
-- **Acompanhamento público** da OS pelo cliente (sem autenticação).
+- Criação e gestão de **ordens de serviço**, com status, serviços executados e peças consumidas.
+- Fluxo de **orçamento**: geração, envio ao cliente, aprovação ou recusa (com baixa de estoque na aprovação).
+- **Acompanhamento público** da OS pelo cliente, pelo número da OS, sem login.
 - **Aging** das OS para análise gerencial do tempo médio de execução.
-- Autenticação **JWT** com usuário administrador.
-
----
+- Autenticação **JWT** — administrativa na própria API, e por **CPF** via Lambda no API Gateway.
 
 ## Stack
 
@@ -26,82 +44,104 @@ Entregar uma API REST robusta que cubra a operação ponta a ponta de uma oficin
 | Runtime | .NET 10 |
 | API | ASP.NET Core Web API |
 | ORM | Entity Framework Core |
-| Banco | PostgreSQL 16 |
+| Banco | PostgreSQL 16 (Amazon RDS) |
 | Validação | FluentValidation |
-| Auth | JWT Bearer |
+| Auth | JWT Bearer (HS256) |
+| Logs | Serilog — JSON compacto com correlation ID |
+| Observabilidade | New Relic — agente .NET (profiler do CLR), `nri-bundle` no cluster e custom events de negócio |
 | Testes | xUnit, Moq, FluentAssertions, Testcontainers |
 | Qualidade | SonarQube (Community) |
 | Container | Docker + Docker Compose |
-| Deploy | Kubernetes (kind) + Terraform |
-| CI/CD | GitHub Actions |
+| Orquestração | Amazon EKS (Kubernetes) |
+| CI/CD | GitHub Actions com OIDC |
 
-Arquitetura: **Clean Architecture** com separação em `Domain`, `Application`, `Infrastructure` e `Api`.
-
-Mais detalhes:
-
-- [Desenho de arquitetura](docs/arquitetura.md)
-- [Infraestrutura Terraform](infra/README.md)
-- [Documentação SonarQube](Documentação/Fase%201/SONARQUBE.md)
-
-### Por que PostgreSQL?
-
-Para este projeto, optou-se pela utilização do PostgreSQL como sistema gerenciador de banco de dados. A escolha foi motivada principalmente por ser uma solução open source e gratuita, permitindo reduzir custos de licenciamento sem comprometer desempenho, segurança ou confiabilidade. Trata-se de uma tecnologia amplamente consolidada no mercado, com excelente documentação e forte suporte da comunidade.
-
-Outro fator relevante foi a experiência prévia da equipe com bancos de dados relacionais e com o próprio PostgreSQL, o que contribuiu para uma curva de aprendizado menor, maior produtividade no desenvolvimento e mais segurança na implementação.
-
-O PostgreSQL também se encaixa diretamente nas necessidades do sistema: o projeto exige diversas relações entre entidades como clientes, veículos, ordens de serviço, serviços executados, peças utilizadas, insumos e controle de tempo de execução. O modelo relacional facilita a organização dos dados, garante integridade referencial e permite consultas estruturadas para acompanhamento operacional e geração de relatórios. Dessa forma, o PostgreSQL apresentou-se como uma solução adequada tanto do ponto de vista técnico quanto estratégico.
+Arquitetura de código: **Clean Architecture**, com separação em `Domain`, `Application`, `Infrastructure` e `Api`. As camadas externas dependem das internas, nunca o contrário.
 
 ---
 
-## Como rodar localmente com Docker
+## Arquitetura da solução
 
-Pré-requisitos:
+```mermaid
+flowchart LR
+    C(["Cliente"]) --> GW["API Gateway"]
+    GW -->|"POST /auth"| L["Lambda auth<br/>CPF para JWT"]
+    GW -.->|"valida token"| AZ["Lambda authorizer"]
+    GW -->|"rotas protegidas"| NLB["Network<br/>Load Balancer"]
+    NLB --> API["garageos-app — este repo<br/>API .NET no EKS<br/>2 a 10 replicas"]
+    L --> DB[("RDS<br/>PostgreSQL")]
+    API --> DB
+    API -.-> NR["New Relic"]
 
-- Docker e Docker Compose instalados.
-- SDK .NET 10, caso queira rodar comandos `dotnet` localmente.
-- `dotnet-ef`, caso queira executar migrations manualmente.
+    style API stroke-width:3px
+```
 
-### 1. Configurar variáveis de ambiente
+| Repositório | Responsabilidade |
+|---|---|
+| **`garageos-app`** *(este)* | API .NET, manifestos Kubernetes, imagem Docker e CI/CD da aplicação |
+| [`garageos-infra-database`](https://github.com/TechChallengeFase1/garageos-infra-database) | RDS PostgreSQL e o `bootstrap/` (state remoto, OIDC, VPC, segredos compartilhados) |
+| [`garageos-infra-k8s`](https://github.com/TechChallengeFase1/garageos-infra-k8s) | Cluster EKS, node group, Access Entries, namespace, `metrics-server` e `nri-bundle` |
+| [`garageos-lambda-auth`](https://github.com/TechChallengeFase1/garageos-lambda-auth) | Lambda de autenticação por CPF e API Gateway HTTP API |
 
-Na raiz do projeto, copie o template e preencha:
+Diagrama completo, com VPC, subnets e fluxo de CI/CD: [docs/diagramas/componentes.md](docs/diagramas/componentes.md).
+
+---
+
+## Documentação da API (Swagger)
+
+| Ambiente | URL |
+|---|---|
+| Local (Docker Compose) | <http://localhost:8080/swagger> |
+| Cluster (via Load Balancer) | `http://<hostname-do-nlb>/swagger` |
+| Através do API Gateway | `<api_gateway_url>/swagger` |
+
+Para descobrir as URLs do ambiente provisionado:
+
+```bash
+kubectl get svc garageos-api -n garageos -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+```
+
+```bash
+terraform -chdir=../garageos-lambda-auth output -raw api_gateway_url
+```
+
+Também há uma coleção Postman pronta para importar: [Code/Postman/GarageOS.postman_collection.json](Code/Postman/GarageOS.postman_collection.json).
+
+### Principais rotas
+
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| `POST` | `/auth` *(no API Gateway)* | pública | Autenticação do cliente por CPF, devolve JWT |
+| `POST` | `/api/Auth/login` | pública | Login administrativo (usuário e senha) |
+| `POST` | `/api/OrdensDeServico/abertura-completa` | JWT | Abre a OS com serviços e peças |
+| `POST` | `/api/OrdensDeServico/{id}/orcamento` | JWT | Gera o orçamento |
+| `POST` | `/api/OrdensDeServico/{id}/orcamento/enviar` | JWT | Envia ao cliente (`AguardandoAprovacao`) |
+| `PATCH` | `/api/OrdensDeServico/{id}/orcamento/resposta` | pública | Aprovação ou recusa pelo cliente |
+| `PATCH` | `/api/OrdensDeServico/{id}/status` | JWT | Altera o status da OS |
+| `GET` | `/api/OrdensDeServico/aging` | JWT | Tempo médio por status |
+| `GET` | `/api/OrdensDeServico/acompanhar/{numeroOS}` | pública | Acompanhamento pelo cliente |
+| `GET` | `/health/live` · `/health/ready` | pública | Health checks |
+
+Há ainda os CRUDs de `Clientes`, `Veiculos`, `Servicos` e `Estoques`, todos protegidos por JWT.
+
+---
+
+## Como rodar localmente
+
+Pré-requisitos: Docker e Docker Compose. SDK .NET 10 e `dotnet-ef` apenas se quiser rodar comandos `dotnet` fora do container.
+
+**1. Configurar as variáveis de ambiente**
 
 ```bash
 cp .env.example .env
 ```
 
-Exemplo de preenchimento:
+Preencha ao menos `POSTGRES_*`, `JWT_*` e `ADMIN_*`. As variáveis `NEW_RELIC_*` são opcionais no local — sem elas o agente simplesmente não envia telemetria.
 
-```env
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=dtsx
-POSTGRES_DB=GarageOS
-
-PGADMIN_EMAIL=admin@garageos.com
-PGADMIN_DEFAULT_PASSWORD=dtsx
-
-JWT_SECRET_KEY=GarageOS@SuperSecretKey#2026!XpTo
-JWT_ISSUER=GarageOS.Api
-JWT_AUDIENCE=GarageOS.Client
-
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=admin@123
-
-SONAR_DB_USER=sonar
-SONAR_DB_PASSWORD=sonarsenha123
-SONAR_TOKEN=
-SONAR_HOST_URL=http://localhost:9000
-SONAR_PROJECT_KEY=GarageOSToken // chave do projeto no SonarQube, geralmente o nome do projeto, por exemplo: GarageOSProject
-```
-
-### 2. Subir os containers
-
-Na raiz do projeto:
+**2. Subir os containers**
 
 ```bash
 docker compose up -d --build
 ```
-
-Esse comando sobe:
 
 | Serviço | Porta | Descrição |
 |---|---|---|
@@ -111,208 +151,270 @@ Esse comando sobe:
 | `garageos-sonarqube` | 9000 | Análise de qualidade (opcional) |
 | `garageos-sonar-db` | — | Banco do SonarQube |
 
-A API aplica automaticamente as migrations pendentes ao iniciar. Para desenvolvimento local, também é possível executar manualmente:
+No Compose, `Database__MigrateOnStartup=true` faz a API aplicar as migrations ao subir — há uma instância só, então é seguro e conveniente. **No cluster isso fica desligado**: quem migra é um Job (ver [Migrations](#migrations)).
+
+**3. Acessar**
+
+- API: <http://localhost:8080>
+- **Swagger**: <http://localhost:8080/swagger>
+- PgAdmin: <http://localhost:5050>
+- SonarQube: <http://localhost:9000>
+
+**4. Autenticar**
 
 ```bash
-dotnet ef database update --project Code/GarageOS.Infrastructure --startup-project Code/GarageOS.Api
+curl -X POST http://localhost:8080/api/Auth/login \
+  -H "content-type: application/json" \
+  -d '{"username":"admin","password":"<ADMIN_PASSWORD do .env>"}'
 ```
 
-### 3. Acessar
+Use o token nas rotas protegidas com `Authorization: Bearer <token>`.
 
-- **API**: <http://localhost:8080>
-- **Swagger** (documentação interativa): <http://localhost:8080/swagger>
-- **PgAdmin**: <http://localhost:5050>
-- **SonarQube**: <http://localhost:9000> (login inicial: `admin` / `admin`)
-
-### 4. Login
-
-`POST /api/Auth/login` com o `ADMIN_USERNAME` e `ADMIN_PASSWORD` definidos no `.env`.
-
-O token JWT retornado deve ser usado no header das rotas protegidas:
-
-```http
-Authorization: Bearer <token>
-```
-
-### 5. Parar os containers
+**5. Encerrar**
 
 ```bash
 docker compose down
 ```
 
-Para remover também os volumes (zera o banco):
+Acrescente `-v` para remover também os volumes (zera o banco).
+
+### Acessar o banco da nuvem a partir da máquina
+
+O RDS está em subnet privada com `publicly_accessible = false` — não existe rota da internet até ele, e isso é proposital. Para usar DBeaver, pgAdmin ou `psql`, há um túnel pronto:
 
 ```bash
-docker compose down -v
+./scripts/tunel-banco.sh
 ```
 
----
-
-## Documentação da API
-
-A documentação interativa está disponível via Swagger em `http://localhost:8080/swagger` após subir o ambiente. Para explorar e testar os endpoints, importe a coleção Postman pronta: [Code/Postman/GarageOS.postman_collection.json](Code/Postman/GarageOS.postman_collection.json).
-
-
+Ele sobe um pod `socat` no cluster, que herda o Security Group "crachá" dos nós, e encaminha `localhost:5432` até o RDS.
 
 ---
 
-## Testes
+## Como fazer o deploy na AWS
 
-Sem Docker Compose, dentro de `Code/`:
+### Pré-requisitos de infraestrutura
+
+O deploy depende da infraestrutura já provisionada, **nesta ordem**:
+
+```text
+bootstrap/  →  garageos-infra-database  →  garageos-infra-k8s  →  garageos-app  →  garageos-lambda-auth
+```
+
+Se algum passo anterior faltar, a pipeline falha ao procurar os parâmetros no SSM — antes de tocar em qualquer coisa.
+
+### Deploy automático (caminho normal)
+
+Todo push na `main` dispara `.github/workflows/cd.yml`:
+
+| Etapa | O que faz |
+|---|---|
+| Build e testes | `dotnet build`, testes unitários e de integração |
+| Imagem Docker | Build e push para o Docker Hub: `:latest` e `:{sha}` |
+| Autenticação na AWS | **OIDC** — nenhuma credencial estática existe neste repositório |
+| Descoberta | Lê cluster, namespace e ARNs dos segredos no SSM Parameter Store |
+| Secret | Lê o Secrets Manager e cria/atualiza o Secret do Kubernetes |
+| Migrations | Aplica o Job e **aguarda concluir** antes do rollout |
+| Deploy | `kubectl apply -f k8s/` + `rollout status` |
+| Smoke test | `curl` em `/health/ready` pelo Load Balancer |
+
+O deploy usa o environment `producao` do GitHub — configurar *required reviewers* ali faz o deploy aguardar aprovação em vez de disparar sozinho.
+
+Nada do que o workflow precisa está escrito à mão nele: recriar a infraestrutura do zero **não exige editar este arquivo**. Ver [ADR 0001](docs/adrs/0001-comunicacao-entre-repositorios.md).
+
+### Deploy manual (para diagnóstico)
 
 ```bash
-# Unitários
-dotnet test GarageOS.UnitTests/GarageOS.UnitTests.csproj
-
-# Integração (sobe um banco em container via Testcontainers)
-dotnet test GarageOS.IntegrationTests/GarageOS.IntegrationTests.csproj
+aws eks update-kubeconfig --name "$(aws ssm get-parameter --name /garageos/producao/eks/cluster-name --query Parameter.Value --output text)" --region us-east-1
 ```
-
-Os testes de integração usam Testcontainers com PostgreSQL, então o Docker precisa estar em execução.
-
----
-
-## Análise de qualidade (SonarQube)
-
-O SonarQube já está incluso no `docker compose`. Para rodar a análise completa do código:
 
 ```bash
-# Linux / macOS
-cd Code && ./sonar-scan.sh
-
-# Windows (PowerShell)
-cd Code; ./sonar-scan.ps1
+kubectl apply -f k8s/ -n garageos
 ```
 
-O resultado aparece em <http://localhost:9000>. Pré-requisitos: `dotnet-sonarscanner` instalado como ferramenta global e `SONAR_TOKEN` preenchido no `.env`.
+```bash
+kubectl rollout status deployment/garageos-api -n garageos --timeout=300s
+```
+
+### Migrations
+
+As migrations rodam em um **Kubernetes Job** (`k8s/jobs/migrations-job.yaml`), com a mesma imagem da API e `args: ["--migrate"]`.
+
+Não é preferência de estilo: com o HPA ativo, várias réplicas sobem ao mesmo tempo e, se as migrations estivessem no startup, todas tentariam migrar em paralelo, disputando a mesma tabela de histórico do EF Core. O Job roda **uma vez**, antes do rollout.
+
+```bash
+kubectl delete job garageos-migrations -n garageos --ignore-not-found
+kubectl apply -f k8s/jobs/migrations-job.yaml
+kubectl wait --for=condition=complete job/garageos-migrations -n garageos --timeout=300s
+```
+
+> `kubectl apply -f k8s/` **não é recursivo** — por isso o Job fica em `k8s/jobs/` e não é reaplicado junto com os manifestos da API.
 
 ---
 
-## Deploy com Kubernetes e Terraform
+## Health checks
 
-Além do ambiente local com Docker Compose, o projeto possui infraestrutura para execução em Kubernetes local usando **kind** e **Terraform**.
-
-A divisão de responsabilidades segue o enunciado do Tech Challenge:
-
-| Camada | Diretório | Responsabilidade |
+| Endpoint | Consulta o banco? | Usado por |
 |---|---|---|
-| IaC | `infra/` | Provisiona a **base**: cluster kind, namespace, metrics-server e PostgreSQL (PVC, StatefulSet, Service, ConfigMap, Secret) |
-| App | `k8s/` | Manifestos da **aplicação**: Deployment, Service, ConfigMap, Secret e HPA |
-| Pipelines | `.github/workflows/` | CI (build + testes) e CD (push de imagem + deploy completo) |
-| Arquitetura | `docs/arquitetura.md` | Desenho da arquitetura, pipeline e infraestrutura |
+| `/health/live` | **Não** | `livenessProbe` — reinicia o container se travar |
+| `/health/ready` | **Sim** | `readinessProbe` — tira o pod do balanceamento |
 
-### Infraestrutura como Código (Terraform)
-
-O Terraform provisiona toda a base necessária sem uso de `local-exec`:
-
-| Arquivo | Recurso criado |
-|---|---|
-| `cluster.tf` | Cluster kind `garageos`, com NodePort 30080 mapeado para `localhost` |
-| `namespace.tf` | Namespace `garageos` |
-| `metrics-server.tf` | Helm release do metrics-server (necessário para o HPA funcionar) |
-| `database.tf` | ConfigMap, Secret, PVC, StatefulSet e Service do PostgreSQL |
-
-Pré-requisitos:
-
-- Docker em execução.
-- [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.5
-- [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
-- [kubectl](https://kubernetes.io/docs/tasks/tools/)
-
-Instalação rápida no Windows (PowerShell):
-
-```powershell
-winget install HashiCorp.Terraform
-winget install Kubernetes.kind
-```
-
-Para provisionar a infraestrutura local:
-
-```bash
-cd infra
-terraform init
-terraform plan
-terraform apply
-```
-
-Depois, a partir da raiz do repositório, aplique os manifestos da aplicação:
-
-```bash
-kubectl apply -f k8s/
-```
-
-Após o deploy, a API fica disponível em:
-
-<http://localhost:30080/swagger>
-
-### Escalabilidade horizontal (HPA)
-
-O manifesto `k8s/hpa.yaml` configura um **Horizontal Pod Autoscaler** para a API. Ele monitora o uso de CPU e escala automaticamente o número de réplicas do Deployment dentro dos limites definidos, garantindo disponibilidade sob carga sem intervenção manual. O metrics-server provisionado pelo Terraform é o componente que alimenta o HPA com as métricas de uso.
-
-Mais detalhes:
-
-- [Infraestrutura como Código](infra/README.md)
-- [Desenho da arquitetura proposta](docs/arquitetura.md)
+A separação é deliberada. Se o liveness consultasse o banco, uma oscilação do RDS reprovaria a probe em **todos** os pods ao mesmo tempo e o Kubernetes mataria a aplicação inteira — transformando instabilidade de banco em queda total. Com a divisão atual, o pod apenas sai do balanceamento e volta sozinho quando o banco voltar.
 
 ---
 
-## Pipelines CI/CD (GitHub Actions)
+## Logs estruturados e observabilidade
 
-O projeto tem dois workflows independentes em `.github/workflows/`:
+Os logs saem em **JSON compacto** (Serilog + `CompactJsonFormatter`) no stdout, que é de onde o Kubernetes e o agente do New Relic coletam.
 
-### CI — `ci.yml`
+O `CorrelationIdMiddleware`:
 
-Roda em todo **push para `main`** e em **pull requests** abertos para `main`.
+- aceita o header `X-Correlation-Id` do chamador, ou gera um novo;
+- publica o valor no `LogContext` do Serilog, então **toda** linha de log da requisição o carrega;
+- devolve o header na resposta, para o chamador correlacionar do lado dele.
 
-| Etapa | O que faz |
+O agente do New Relic injeta `trace.id` e `span.id` em cada linha, ligando log a trace na interface. Dado um `X-Correlation-Id`, é possível recuperar todas as linhas da requisição e o trace com as consultas SQL que ela executou.
+
+### Métricas de negócio
+
+Latência e taxa de erro o agente coleta sozinho. O que ele **não** tem como saber é quantas OS foram abertas hoje ou quanto tempo uma OS ficou em diagnóstico — isso é dado do domínio, e só a aplicação pode emitir.
+
+A publicação passa pela interface `IMetricasDeNegocio` (`GarageOS.Application/Abstractions`), implementada por `MetricasNewRelic` na Infrastructure. Os use cases não conhecem o fornecedor.
+
+| Evento | Atributos | Emitido em |
+|---|---|---|
+| `OrdemDeServicoCriada` | `numeroOS`, `clienteId` | `AbrirOrdemDeServicoCompletaUseCase`, após persistir |
+| `OrdemDeServicoStatus` | `numeroOS`, `statusAnterior`, `statusNovo`, `minutosNoStatus` | `AlterarStatusOrdemDeServicoUseCase` |
+| `OrdemDeServicoFalha` | `numeroOS`, `motivo` | Falhas no processamento de uma ordem de serviço |
+
+Duas garantias que valem conhecer antes de mexer:
+
+- **`minutosNoStatus` é calculado antes da transição.** Depois de `AlterarStatus()`, o estado anterior não existe mais em lugar nenhum.
+- **Telemetria nunca derruba operação.** Nenhuma chamada de métrica propaga exceção: falha vira `LogDebug` e a OS segue. É o que permite rodar localmente, sem agente, sem tratamento especial.
+
+As NRQL dos dashboards e a condição do alerta estão registradas na [RFC 0004](docs/rfcs/0004-ferramenta-de-observabilidade.md) — eles vivem na interface do New Relic, não em código, então essa RFC é a referência para reconstruí-los.
+
+Detalhes e critérios de escolha da ferramenta: [RFC 0004](docs/rfcs/0004-ferramenta-de-observabilidade.md).
+
+---
+
+## Escalabilidade (HPA)
+
+`k8s/hpa.yaml` mantém entre **2 e 10 réplicas**, com alvo de **70% de CPU**.
+
+Para o HPA funcionar de fato, quatro condições precisam estar satisfeitas:
+
+1. `metrics-server` instalado no cluster (feito pelo `garageos-infra-k8s`);
+2. `resources.requests.cpu` declarado no Deployment — sem denominador não há percentual;
+3. migrations fora do startup;
+4. health checks HTTP corretos, para o Service só mandar tráfego a pods prontos.
+
+```bash
+kubectl get hpa -n garageos
+kubectl top pods -n garageos
+```
+
+Racional completo e limites conhecidos: [ADR 0002](docs/adrs/0002-uso-do-hpa.md).
+
+---
+
+## Segredos
+
+**Nenhum segredo está versionado neste repositório.** O antigo `k8s/secret.yaml`, que trazia a `JWT_SECRET_KEY` em Base64, foi removido.
+
+```mermaid
+flowchart LR
+    SM["AWS Secrets Manager<br/>garageos/app/secrets<br/>garageos/rds/master"] -->|"pipeline de CD le"| K8S["Secret do Kubernetes<br/>garageos-secret"]
+    K8S -->|"envFrom"| POD["Pods da API"]
+    SM -->|"terraform apply"| LMB["Lambda de autenticacao"]
+```
+
+A pipeline lê o Secrets Manager em tempo de deploy e cria o Secret do Kubernetes de forma idempotente. A `JWT_SECRET_KEY` é a **mesma** usada pela Lambda de autenticação — as duas leem do mesmo segredo, e é isso que impede o modo de falha em que a API rejeita silenciosamente todo token emitido pela Lambda.
+
+| Chave no Secret do Kubernetes | Origem |
 |---|---|
-| Build | `dotnet build` na solução completa |
-| Testes unitários | `dotnet test` em `GarageOS.UnitTests` |
-| Testes de integração | `dotnet test` em `GarageOS.IntegrationTests` (sobe PostgreSQL via Testcontainers) |
-| Docker build | Constrói a imagem `garageos-api:{sha}` para validar o Dockerfile |
+| `ConnectionStrings__DefaultConnection` | `garageos/rds/master` → `connectionString` |
+| `Jwt__SecretKey` | `garageos/app/secrets` → `jwtSecretKey` |
+| `Admin__Password` | `garageos/app/secrets` → `adminPassword` |
+| `NEW_RELIC_LICENSE_KEY` | `garageos/app/secrets` → `newRelicLicenseKey` |
 
-### CD — `cd.yml`
+Todos os valores passam por `::add-mask::` antes de qualquer uso, então um comando que os ecoe por engano sai mascarado no log.
 
-Roda no **merge para `main`** e também pode ser disparado manualmente via `workflow_dispatch`.
+O `ConfigMap` (`k8s/configmap.yaml`) guarda apenas configuração **não sensível**: ambiente, issuer, audience, usuário admin e `NEW_RELIC_APP_NAME` (`garageOS`) — nome distinto do usado no `docker compose` local, para que os dados de desenvolvimento não se misturem aos do cluster.
 
-| Etapa | O que faz |
-|---|---|
-| Build + testes | Mesmos passos do CI (garantia antes do deploy) |
-| Push da imagem | Build e push para o Docker Hub: `garageosfiap/garageos-api:latest` e `garageosfiap/garageos-api:{sha}` |
-| Terraform apply | Provisiona cluster kind + namespace + metrics-server + banco no runner |
-| kubectl apply | Aplica os manifestos de `k8s/` no cluster |
-| Smoke test | `curl` na rota `/swagger/index.html` para confirmar que a API respondeu 200 |
+> A license key é o único segredo que **não é sorteado** pelo Terraform: é emitida pela New Relic e entra uma vez, como variável do bootstrap. Se ficar vazia, o agente sobe, se desliga e a aplicação funciona normalmente — só não reporta nada.
 
-A imagem pública está disponível no Docker Hub em: [`garageosfiap/garageos-api`](https://hub.docker.com/r/garageosfiap/garageos-api)
+---
+
+## Testes e qualidade
+
+```bash
+dotnet test Code/GarageOS.UnitTests/GarageOS.UnitTests.csproj
+```
+
+```bash
+dotnet test Code/GarageOS.IntegrationTests/GarageOS.IntegrationTests.csproj
+```
+
+Os testes de integração sobem um PostgreSQL real via **Testcontainers**, então o Docker precisa estar em execução.
+
+Análise SonarQube (com o Compose no ar):
+
+```bash
+cd Code && ./sonar-scan.sh
+```
+
+No Windows, use `./sonar-scan.ps1`. Requer `dotnet-sonarscanner` como ferramenta global e `SONAR_TOKEN` preenchido no `.env`.
 
 ---
 
 ## Estrutura do repositório
 
 ```text
-GarageOS/
-├── .github/workflows/          # CI/CD com GitHub Actions
+garageos-app/
+├── .github/workflows/       # ci.yml (build + testes) e cd.yml (imagem + deploy no EKS)
 ├── Code/
-│   ├── GarageOS.Api/           # Controllers, middlewares, Program.cs
-│   ├── GarageOS.Application/   # Use cases, DTOs, validators
-│   ├── GarageOS.Domain/        # Entidades, value objects e regras de domínio
+│   ├── GarageOS.Api/            # Controllers, middlewares, health checks, Program.cs
+│   ├── GarageOS.Application/    # Use cases, DTOs, validators
+│   ├── GarageOS.Domain/         # Entidades, value objects, regras de domínio
 │   ├── GarageOS.Infrastructure/ # EF Core, repositórios, migrations
 │   ├── GarageOS.UnitTests/
 │   ├── GarageOS.IntegrationTests/
-│   ├── Postman/                # Coleção pronta para importar
-│   └── sonar-scan.sh / .ps1    # Scripts de análise SonarQube
-├── docs/                       # Desenho e documentação de arquitetura
-├── infra/                      # Terraform para infraestrutura Kubernetes local
-├── k8s/                        # Manifestos Kubernetes da aplicação
-├── Documentação/
-│   └── Fase 1/                 # Domain Storytelling, enunciado, SonarQube
-├── Dockerfile
-├── docker-compose.yml
-└── .env.example
+│   └── Postman/                 # Coleção pronta para importar
+├── docs/
+│   ├── rfcs/                # Decisões de tecnologia
+│   ├── adrs/                # Decisões de arquitetura
+│   └── diagramas/           # Componentes, sequência e ER
+├── k8s/
+│   ├── api-deployment.yaml  # Deployment com probes HTTP
+│   ├── api-service.yaml     # Service type LoadBalancer (NLB)
+│   ├── configmap.yaml       # Configuração não sensível
+│   ├── hpa.yaml             # 2 a 10 réplicas, CPU 70%
+│   └── jobs/                # Job de migrations
+├── scripts/                 # Túnel para o RDS, validação da solução
+├── Dockerfile               # Multi-stage + agente do New Relic
+└── docker-compose.yml
 ```
+
+---
+
+## Documentação de arquitetura
+
+Índice completo em **[docs/README.md](docs/README.md)**.
+
+| Documento | Assunto |
+|---|---|
+| [RFC 0001](docs/rfcs/0001-escolha-provedor-cloud.md) | Escolha do provedor de nuvem (AWS) |
+| [RFC 0002](docs/rfcs/0002-escolha-banco-de-dados.md) | Escolha do banco de dados (RDS PostgreSQL) |
+| [RFC 0003](docs/rfcs/0003-estrategia-de-autenticacao.md) | Estratégia de autenticação (CPF, Lambda, JWT) |
+| [RFC 0004](docs/rfcs/0004-ferramenta-de-observabilidade.md) | Ferramenta de observabilidade (New Relic) |
+| [ADR 0001](docs/adrs/0001-comunicacao-entre-repositorios.md) | Comunicação entre os repositórios |
+| [ADR 0002](docs/adrs/0002-uso-do-hpa.md) | Uso do HPA |
+| [Componentes](docs/diagramas/componentes.md) · [Autenticação](docs/diagramas/sequencia-autenticacao.md) · [Abertura de OS](docs/diagramas/sequencia-abertura-os.md) · [ER](docs/diagramas/modelo-er.md) | Diagramas |
+
+Imagem pública no Docker Hub: [`garageosfiap/garageos-api`](https://hub.docker.com/r/garageosfiap/garageos-api).
 
 ---
 
 ## Autores
 
-Trabalho desenvolvido pelo grupo da Pós em Arquitetura de Software.
+Trabalho desenvolvido pelo grupo da Pós-graduação em Arquitetura de Software.
