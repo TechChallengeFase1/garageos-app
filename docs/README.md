@@ -23,6 +23,7 @@ Um ADR responde **"como"**: registra uma decisão estrutural interna, com as alt
 |---|---|---|---|
 | [0001](adrs/0001-comunicacao-entre-repositorios.md) | Padrão de comunicação entre os repositórios | Aceito | SSM Parameter Store como contrato, Security Group como crachá |
 | [0002](adrs/0002-uso-do-hpa.md) | Uso do Horizontal Pod Autoscaler | Aceito | HPA v2 por CPU, 2–10 réplicas, com 4 pré-condições |
+| [0003](adrs/0003-exposicao-do-load-balancer.md) | Exposição do Load Balancer da aplicação | Aceito | NLB `internet-facing`, com validação do JWT na própria API |
 
 ## Diagramas
 

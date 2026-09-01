@@ -5,7 +5,7 @@
 | **Status** | Aceito |
 | **Data** | 2026-08-17 |
 | **Autores** | Equipe GarageOS (Tech Challenge — Fase 3) |
-| **Repositórios afetados** | `garageos-infra-database`, `garageos-infra-kubernetes`, `garageos-lambda-auth`, `garageos-app` |
+| **Repositórios afetados** | `garageos-infra-database`, `garageos-infra-k8s`, `garageos-lambda-auth`, `garageos-app` |
 
 ## Contexto
 
@@ -54,7 +54,7 @@ Mapeamento dos requisitos obrigatórios para serviços AWS:
 
 **Trade-offs conscientes**
 - **Custo residual do EKS**: o control plane cobra por hora independentemente do uso. Mitigação: `terraform destroy` da infraestrutura de Kubernetes fora das janelas de desenvolvimento/demonstração, reprovisionando via pipeline de CD quando necessário.
-- **Consumo dos créditos**: créditos educacionais costumam ter validade e teto de consumo. Mitigação: acompanhar o Billing/Cost Explorer periodicamente e preferir instâncias/node groups de menor custo (ex: `t3.medium`) para o cluster.
+- **Consumo dos créditos**: créditos educacionais costumam ter validade e teto de consumo. Mitigação: acompanhar o Billing/Cost Explorer periodicamente e preferir instâncias/node groups de menor custo para o cluster — o node group acabou provisionado com `t3.small`, decisão detalhada em [ADR 0002](../adrs/0002-uso-do-hpa.md).
 - **Lock-in em nomenclatura e serviços AWS-específicos** (ex: uso de IAM, VPC, Security Groups) na documentação e no código de infraestrutura. Aceitável para o escopo acadêmico do projeto; não há requisito de portabilidade entre nuvens.
 
 ## Decisões desdobradas (fora do escopo desta RFC)

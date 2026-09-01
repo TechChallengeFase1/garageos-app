@@ -67,6 +67,7 @@ flowchart TB
 **Leitura rápida**
 
 - A **porta de entrada** é o API Gateway. `POST /auth` é público; todo o resto passa pelo Lambda authorizer antes de chegar ao cluster.
+  Uma ressalva que o desenho não mostra: o NLB é `internet-facing` e continua alcançável diretamente, então o gateway é ponto de controle **preferencial, não fronteira obrigatória**. A API valida o mesmo token por conta própria — ver [ADR 0003](../adrs/0003-exposicao-do-load-balancer.md).
 - O **banco fica nas subnets privadas**, sem rota para a internet. Só alcançam a porta 5432 os recursos que carregam o Security Group "crachá": os nós do EKS e a Lambda de autenticação.
 - Os **nós ficam nas subnets públicas** porque não há NAT Gateway (economia de ~US$ 32/mês). Eles têm IP público protegido por Security Group, sem nenhuma porta aberta para `0.0.0.0/0`.
 - **Nenhum segredo está no Git.** O Secrets Manager é a fonte da verdade; a pipeline o lê no deploy e cria o Secret do Kubernetes.
