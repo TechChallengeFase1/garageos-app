@@ -127,7 +127,7 @@ A Lambda de autenticação fica em subnet privada e o bootstrap **não criou NAT
 - **Chave simétrica.** Quem valida também consegue assinar. Aceitável porque emissor e validador pertencem ao mesmo time e à mesma conta AWS. Em um cenário com validadores de terceiros, o correto seria RS256 com JWKS.
 - **Sem revogação antes da expiração.** Um token roubado vale até 1 hora. Mitigações: validade curta e HTTPS no gateway. Revogação real exigiria lista de bloqueio consultada a cada requisição, o que anularia a vantagem do JWT.
 - **Segredos como variável de ambiente da Lambda.** Ficam visíveis para quem tiver `lambda:GetFunctionConfiguration`. Trade-off consciente da ausência de NAT Gateway.
-- **O NLB é `internet-facing`.** A aplicação continua acessível diretamente, sem passar pelo gateway. A alternativa correta seria NLB interno com VPC Link — registrado como trade-off aceito em [ADR 0001](../adrs/0001-comunicacao-entre-repositorios.md) e no README do `garageos-lambda-auth`.
+- **O NLB é `internet-facing`.** A aplicação continua acessível diretamente, sem passar pelo gateway. A alternativa correta seria NLB interno com VPC Link — decisão registrada em [ADR 0003](../adrs/0003-exposicao-do-load-balancer.md).
 - **Autenticação por CPF sozinha não é forte.** O CPF não é segredo. O escopo é o do enunciado — identificar o cliente já cadastrado para acompanhar a própria OS —, não proteger operação financeira. Um cenário real exigiria segundo fator ou senha.
 
 ## Referências

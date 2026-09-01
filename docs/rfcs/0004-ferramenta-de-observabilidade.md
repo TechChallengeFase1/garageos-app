@@ -101,7 +101,7 @@ A publicação passa pela interface `IMetricasDeNegocio`, declarada em `GarageOS
 |---|---|---|
 | `OrdemDeServicoCriada` | `numeroOS`, `clienteId` | `AbrirOrdemDeServicoCompletaUseCase`, após a persistência |
 | `OrdemDeServicoStatus` | `numeroOS`, `statusAnterior`, `statusNovo`, `minutosNoStatus` | `AlterarStatusOrdemDeServicoUseCase` |
-| `OrdemDeServicoFalha` | `numeroOS`, `motivo` | Falhas no processamento de uma ordem de serviço |
+| `OrdemDeServicoFalha` | `numeroOS`, `motivo` | Três pontos: `OrdensDeServicoController` (transição de status recusada pela validação), `AbrirOrdemDeServicoCompletaUseCase` e `AlterarStatusOrdemDeServicoUseCase` (exceções de domínio) |
 
 Duas decisões de implementação valem registro:
 
@@ -118,16 +118,24 @@ Os três dashboards exigidos e o alerta são montados na interface do New Relic 
 | Tempo médio por status | `SELECT average(minutosNoStatus) FROM OrdemDeServicoStatus FACET statusAnterior SINCE 7 days ago` |
 | Erros de integração | `SELECT count(*) FROM TransactionError WHERE appName = 'garageOS' FACET error.message TIMESERIES` |
 
-O alerta obrigatório — **falhas no processamento de ordens de serviço** — é uma condição NRQL sobre a taxa de erro dos endpoints de OS:
+O alerta obrigatório — **falhas no processamento de ordens de serviço** — é uma condição NRQL sobre o **evento de negócio**, não sobre a exceção técnica:
 
 ```sql
-SELECT count(*) FROM TransactionError
-WHERE appName = 'garageOS' AND transactionName LIKE '%OrdensDeServico%'
+SELECT count(*) FROM OrdemDeServicoFalha
 ```
 
-disparando quando a contagem ultrapassa o limite configurado na janela de avaliação da condição.
+| Parâmetro da condição | Valor |
+|---|---|
+| Nome | Falhas no processamento de ordens de serviço |
+| Janela de agregação | 1 minuto, método `EVENT_FLOW`, atraso de 120 s |
+| Limite crítico | `above 0` por pelo menos 1 minuto |
+| Notificação | *workflow* ligado a um destino de e-mail |
 
-O `TransactionError` alimenta o dashboard de erros e o alerta porque o agente captura automaticamente toda exceção que sobe até o `ExceptionMiddleware`, com `transactionName` já identificando o endpoint de OS. O evento `OrdemDeServicoFalha` está disponível na interface `IMetricasDeNegocio` para recortes de negócio mais específicos, consultável por `FROM OrdemDeServicoFalha FACET motivo`.
+**Por que sobre `OrdemDeServicoFalha`, e não sobre `TransactionError`.** Nem toda falha de processamento vira exceção. A recusa de uma transição de status inválida é uma resposta `400` deliberada, produzida pela validação antes de o caso de uso rodar — ela nunca sobe até o `ExceptionMiddleware` e, portanto, **não gera `TransactionError` nenhum**. Um alerta ancorado na exceção técnica seria cego justamente para o caso mais comum. O evento de negócio é emitido explicitamente nos três pontos onde uma OS deixa de ser processada, então cobre tanto a exceção quanto a rejeição validada.
+
+O `TransactionError` continua alimentando o **dashboard** de erros de integração, onde o recorte desejado é por `error.message` — ali o que interessa é a falha técnica.
+
+> **Validado em cenário controlado.** Uma sequência de transições de status recusadas gerou o incidente correspondente em `NrAiIncident`, com o `Degradation Time` apontando para o minuto das primeiras falhas, e o e-mail chegou ao destinatário do workflow. A verificação é reproduzível por NRQL: `SELECT * FROM NrAiIncident SINCE 2 hours ago` mostra o incidente aberto pela condição, e `SELECT count(*) FROM OrdemDeServicoFalha TIMESERIES 1 minute` mostra o sinal que o disparou.
 
 ## Consequências
 
