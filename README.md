@@ -92,7 +92,14 @@ Diagrama completo, com VPC, subnets e fluxo de CI/CD: [docs/diagramas/componente
 |---|---|
 | Local (Docker Compose) | <http://localhost:8080/swagger> |
 | Cluster (via Load Balancer) | `http://<hostname-do-nlb>/swagger` |
-| Através do API Gateway | `<api_gateway_url>/swagger` |
+
+> O Swagger **não** abre através do API Gateway. Lá todas as rotas ficam sob
+> `ANY /{proxy+}`, que exige token, e o navegador não envia `Authorization` ao
+> carregar uma página — o gateway responde `401`. Use o Load Balancer.
+>
+> E use `http://` explícito: o Load Balancer só tem listener na porta 80. Sem o
+> esquema na barra de endereço, o navegador tenta `https://`, bate numa porta
+> que não escuta e o erro que aparece é um timeout, não um aviso de certificado.
 
 Para descobrir as URLs do ambiente provisionado:
 
