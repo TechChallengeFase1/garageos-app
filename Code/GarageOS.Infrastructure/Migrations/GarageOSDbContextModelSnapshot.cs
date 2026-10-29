@@ -57,69 +57,40 @@ namespace GarageOS.Infrastructure.Migrations
                     b.ToTable("Clientes", (string)null);
                 });
 
-            modelBuilder.Entity("GarageOS.Domain.Entities.Estoque", b =>
+            modelBuilder.Entity("GarageOS.Domain.Entities.HistoricoStatusOS", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
-                    b.Property<DateTime>("DataEntrada")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
-                    b.Property<DateTime?>("DataSaida")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Fornecedor")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<string>("Nome")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<int>("Quantidade")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Status")
-                        .HasMaxLength(20)
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("Valor")
-                        .HasColumnType("numeric(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Estoques", (string)null);
-                });
-
-            modelBuilder.Entity("GarageOS.Domain.Entities.Orcamento", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("CriadoEm")
+                    b.Property<DateTime>("OcorridoEm")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("OrdemDeServicoId")
                         .HasColumnType("uuid");
 
-                    b.Property<decimal>("Preco")
-                        .HasColumnType("numeric(18,2)");
+                    b.Property<string>("Origem")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
 
-                    b.Property<int>("Status")
-                        .HasMaxLength(50)
-                        .HasColumnType("integer");
+                    b.Property<string>("StatusAnterior")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("StatusNovo")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrdemDeServicoId")
-                        .IsUnique();
+                    b.HasIndex("OrdemDeServicoId", "OcorridoEm");
 
-                    b.ToTable("Orcamentos", (string)null);
+                    b.ToTable("HistoricoStatusOS", (string)null);
                 });
 
             modelBuilder.Entity("GarageOS.Domain.Entities.OrdemDeServico", b =>
@@ -144,29 +115,47 @@ namespace GarageOS.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
-                    b.Property<int>("Status")
-                        .HasMaxLength(50)
-                        .HasColumnType("integer");
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
 
                     b.Property<Guid>("VeiculoId")
                         .HasColumnType("uuid");
 
+                    b.Property<uint>("Versao")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ClienteId");
+
+                    b.HasIndex("NumeroOS")
+                        .IsUnique();
 
                     b.HasIndex("VeiculoId");
 
                     b.ToTable("OrdensDeServico", (string)null);
                 });
 
-            modelBuilder.Entity("GarageOS.Domain.Entities.OrdemDeServicoEstoque", b =>
+            modelBuilder.Entity("GarageOS.Domain.Entities.OrdemDeServicoPeca", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid>("EstoqueId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
 
                     b.Property<Guid>("OrdemDeServicoId")
                         .HasColumnType("uuid");
@@ -174,13 +163,14 @@ namespace GarageOS.Infrastructure.Migrations
                     b.Property<int>("Quantidade")
                         .HasColumnType("integer");
 
-                    b.HasKey("Id");
+                    b.Property<decimal>("ValorUnitario")
+                        .HasColumnType("numeric(18,2)");
 
-                    b.HasIndex("EstoqueId");
+                    b.HasKey("Id");
 
                     b.HasIndex("OrdemDeServicoId");
 
-                    b.ToTable("OrdensDeServicoEstoques", (string)null);
+                    b.ToTable("OrdensDeServicoPecas", (string)null);
                 });
 
             modelBuilder.Entity("GarageOS.Domain.Entities.OrdemDeServicoServico", b =>
@@ -191,21 +181,19 @@ namespace GarageOS.Infrastructure.Migrations
                     b.Property<DateTime>("CriadoEm")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTime?>("FinalizadaEm")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("IniciadaEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
 
                     b.Property<Guid>("OrdemDeServicoId")
                         .HasColumnType("uuid");
 
+                    b.Property<decimal>("PrecoUnitario")
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<Guid>("ServicoId")
                         .HasColumnType("uuid");
-
-                    b.Property<int>("Status")
-                        .HasMaxLength(50)
-                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -275,9 +263,10 @@ namespace GarageOS.Infrastructure.Migrations
                             b1.Property<Guid>("ClienteId")
                                 .HasColumnType("uuid");
 
-                            b1.Property<int>("Tipo")
+                            b1.Property<string>("Tipo")
+                                .IsRequired()
                                 .HasMaxLength(20)
-                                .HasColumnType("integer")
+                                .HasColumnType("character varying(20)")
                                 .HasColumnName("DocumentoTipo");
 
                             b1.Property<string>("Valor")
@@ -355,49 +344,37 @@ namespace GarageOS.Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("GarageOS.Domain.Entities.Orcamento", b =>
+            modelBuilder.Entity("GarageOS.Domain.Entities.HistoricoStatusOS", b =>
                 {
                     b.HasOne("GarageOS.Domain.Entities.OrdemDeServico", null)
-                        .WithOne("Orcamento")
-                        .HasForeignKey("GarageOS.Domain.Entities.Orcamento", "OrdemDeServicoId")
+                        .WithMany("Historico")
+                        .HasForeignKey("OrdemDeServicoId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
             modelBuilder.Entity("GarageOS.Domain.Entities.OrdemDeServico", b =>
                 {
-                    b.HasOne("GarageOS.Domain.Entities.Cliente", "Cliente")
+                    b.HasOne("GarageOS.Domain.Entities.Cliente", null)
                         .WithMany()
                         .HasForeignKey("ClienteId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("GarageOS.Domain.Entities.Veiculo", "Veiculo")
+                    b.HasOne("GarageOS.Domain.Entities.Veiculo", null)
                         .WithMany()
                         .HasForeignKey("VeiculoId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("Cliente");
-
-                    b.Navigation("Veiculo");
                 });
 
-            modelBuilder.Entity("GarageOS.Domain.Entities.OrdemDeServicoEstoque", b =>
+            modelBuilder.Entity("GarageOS.Domain.Entities.OrdemDeServicoPeca", b =>
                 {
-                    b.HasOne("GarageOS.Domain.Entities.Estoque", "Estoque")
-                        .WithMany()
-                        .HasForeignKey("EstoqueId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("GarageOS.Domain.Entities.OrdemDeServico", null)
-                        .WithMany("Estoques")
+                        .WithMany("Pecas")
                         .HasForeignKey("OrdemDeServicoId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Estoque");
                 });
 
             modelBuilder.Entity("GarageOS.Domain.Entities.OrdemDeServicoServico", b =>
@@ -408,13 +385,11 @@ namespace GarageOS.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("GarageOS.Domain.Entities.Servico", "Servico")
+                    b.HasOne("GarageOS.Domain.Entities.Servico", null)
                         .WithMany()
                         .HasForeignKey("ServicoId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("Servico");
                 });
 
             modelBuilder.Entity("GarageOS.Domain.Entities.Veiculo", b =>
@@ -428,9 +403,9 @@ namespace GarageOS.Infrastructure.Migrations
 
             modelBuilder.Entity("GarageOS.Domain.Entities.OrdemDeServico", b =>
                 {
-                    b.Navigation("Estoques");
+                    b.Navigation("Historico");
 
-                    b.Navigation("Orcamento");
+                    b.Navigation("Pecas");
 
                     b.Navigation("Servicos");
                 });

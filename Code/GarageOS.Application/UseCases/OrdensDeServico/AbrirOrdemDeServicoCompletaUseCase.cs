@@ -1,5 +1,6 @@
 using GarageOS.Application.Abstractions;
 using GarageOS.Application.DTOs.OrdensDeServico;
+using GarageOS.Application.Mappers;
 using GarageOS.Domain.Entities;
 using GarageOS.Domain.Exceptions;
 using GarageOS.Domain.Repositories;
@@ -13,68 +14,60 @@ public class AbrirOrdemDeServicoCompletaUseCase
     private readonly IClienteRepository _clienteRepository;
     private readonly IVeiculoRepository _veiculoRepository;
     private readonly IServicoRepository _servicoRepository;
-    private readonly IEstoqueRepository _estoqueRepository;
+    private readonly IEstoqueClient _estoque;
     private readonly IMetricasDeNegocio _metricas;
+    private readonly IContextoDaRequisicao _contexto;
 
     public AbrirOrdemDeServicoCompletaUseCase(
         IOrdemDeServicoRepository repository,
         IClienteRepository clienteRepository,
         IVeiculoRepository veiculoRepository,
         IServicoRepository servicoRepository,
-        IEstoqueRepository estoqueRepository,
-        IMetricasDeNegocio metricas)
+        IEstoqueClient estoque,
+        IMetricasDeNegocio metricas,
+        IContextoDaRequisicao contexto)
     {
         _repository = repository;
         _clienteRepository = clienteRepository;
         _veiculoRepository = veiculoRepository;
         _servicoRepository = servicoRepository;
-        _estoqueRepository = estoqueRepository;
+        _estoque = estoque;
         _metricas = metricas;
+        _contexto = contexto;
     }
 
     public async Task<OrdemDeServicoResponse> ExecutarAsync(AbrirOrdemDeServicoCompletaRequest request)
     {
-        var cliente = await _clienteRepository.ObterPorIdAsync(request.ClienteId);
-        if (cliente == null)
-            throw new ClienteNaoEncontradoException(request.ClienteId);
+        _ = await _clienteRepository.ObterPorIdAsync(request.ClienteId)
+            ?? throw new ClienteNaoEncontradoException(request.ClienteId);
 
-        var veiculo = await _veiculoRepository.ObterPorIdAsync(request.VeiculoId);
-        if (veiculo == null)
-            throw new VeiculoNaoEncontradoException(request.VeiculoId);
+        _ = await _veiculoRepository.ObterPorIdAsync(request.VeiculoId)
+            ?? throw new VeiculoNaoEncontradoException(request.VeiculoId);
 
-        var servicosIdsValidados = new List<Guid>();
+        // Tudo validado ANTES de gravar: se uma referência não existir, nada é
+        // persistido.
+        var servicos = new List<(Guid, string, decimal)>();
         foreach (var servicoId in request.ServicosIds)
         {
-            var servico = await _servicoRepository.ObterPorIdAsync(servicoId);
-            if (servico == null)
-                throw new ServicoNaoEncontradoException(servicoId);
+            var servico = await _servicoRepository.ObterPorIdAsync(servicoId)
+                ?? throw new ServicoNaoEncontradoException(servicoId);
 
-            servicosIdsValidados.Add(servicoId);
+            servicos.Add((servico.Id, servico.NomeServico, servico.Preco));
         }
 
-        var pecas = request.Pecas ?? [];
-        var pecasValidadas = new List<PecaRequest>();
-        foreach (var peca in pecas)
+        var pecas = new List<(Guid, string, decimal, int)>();
+        foreach (var pedido in request.Pecas ?? [])
         {
-            var estoque = await _estoqueRepository.ObterPorIdAsync(peca.EstoqueId);
-            if (estoque == null)
-                throw new EstoqueNaoEncontradoException(peca.EstoqueId);
-
-            pecasValidadas.Add(peca);
+            var peca = await _estoque.ObterDisponivelAsync(pedido.EstoqueId, pedido.Quantidade);
+            pecas.Add((peca.Id, peca.Nome, peca.Valor, pedido.Quantidade));
         }
 
         var ano = BrasiliaTime.Agora.Year;
-        var ultimoSequencial = await _repository.ObterUltimoSequencialDoAnoAsync(ano);
-        var novoSequencial = ultimoSequencial + 1;
-        var numeroOS = $"OS-{ano}-{novoSequencial:D5}";
+        var sequencial = await _repository.ObterProximoSequencialDoAnoAsync(ano);
+        var numeroOS = $"OS-{ano}-{sequencial:D5}";
 
-        var ordemDeServico = new OrdemDeServico(numeroOS, request.ClienteId, request.VeiculoId);
-
-        foreach (var servicoId in servicosIdsValidados)
-            ordemDeServico.AdicionarServico(new OrdemDeServicoServico(ordemDeServico.Id, servicoId));
-
-        foreach (var peca in pecasValidadas)
-            ordemDeServico.AdicionarEstoque(new OrdemDeServicoEstoque(ordemDeServico.Id, peca.EstoqueId, peca.Quantidade));
+        var ordemDeServico = new OrdemDeServico(
+            numeroOS, request.ClienteId, request.VeiculoId, servicos, pecas, _contexto.CorrelationId);
 
         try
         {
@@ -90,52 +83,6 @@ public class AbrirOrdemDeServicoCompletaUseCase
         // transacoes do APM contariam a REQUISICAO; este evento conta a OS.
         _metricas.OrdemDeServicoCriada(ordemDeServico.NumeroOS, ordemDeServico.ClienteId);
 
-        return MapearParaResponse(ordemDeServico);
-    }
-
-    private static OrdemDeServicoResponse MapearParaResponse(OrdemDeServico ordemDeServico)
-    {
-        return new OrdemDeServicoResponse
-        {
-            Id = ordemDeServico.Id,
-            NumeroOS = ordemDeServico.NumeroOS,
-            Status = ordemDeServico.Status,
-            CriadoEm = ordemDeServico.CriadoEm,
-            FinalizadaEm = ordemDeServico.FinalizadaEm,
-            AtualizadoEm = ordemDeServico.AtualizadoEm,
-            ClienteId = ordemDeServico.ClienteId,
-            VeiculoId = ordemDeServico.VeiculoId,
-            Servicos = ordemDeServico.Servicos
-                .Select(s => new ServicoItemResponse
-                {
-                    Id = s.Id,
-                    ServicoId = s.ServicoId,
-                    ServicoNome = s.Servico?.NomeServico ?? string.Empty,
-                    Status = s.Status,
-                    CriadoEm = s.CriadoEm,
-                    IniciadaEm = s.IniciadaEm,
-                    FinalizadaEm = s.FinalizadaEm
-                })
-                .ToList(),
-            Estoques = ordemDeServico.Estoques
-                .Select(e => new EstoqueItemResponse
-                {
-                    Id = e.Id,
-                    EstoqueId = e.EstoqueId,
-                    EstoqueNome = e.Estoque?.Nome ?? string.Empty,
-                    Quantidade = e.Quantidade
-                })
-                .ToList(),
-            Orcamento = ordemDeServico.Orcamento != null
-                ? new OrcamentoResponse
-                {
-                    Id = ordemDeServico.Orcamento.Id,
-                    Status = ordemDeServico.Orcamento.Status,
-                    Preco = ordemDeServico.Orcamento.Preco,
-                    CriadoEm = ordemDeServico.Orcamento.CriadoEm,
-                    AtualizadoEm = ordemDeServico.Orcamento.AtualizadoEm
-                }
-                : null
-        };
+        return ordemDeServico.ParaResponse();
     }
 }

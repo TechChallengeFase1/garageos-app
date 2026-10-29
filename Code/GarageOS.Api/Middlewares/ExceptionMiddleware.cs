@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Text.Json;
 using GarageOS.Domain.Exceptions;
 using GarageOS.Domain.Utils;
@@ -42,10 +42,20 @@ public class ExceptionMiddleware
             _logger.LogWarning(ex, MsgNaoEncontrado, ex.Message);
             await EscreverRespostaAsync(context, HttpStatusCode.NotFound, ex.Message);
         }
-        catch (EstoqueNaoEncontradoException ex)
+        catch (PecaNaoEncontradaException ex)
         {
             _logger.LogWarning(ex, MsgNaoEncontrado, ex.Message);
             await EscreverRespostaAsync(context, HttpStatusCode.NotFound, ex.Message);
+        }
+        catch (EstoqueInsuficienteException ex)
+        {
+            _logger.LogWarning(ex, "Conflito: {Message}", ex.Message);
+            await EscreverRespostaAsync(context, HttpStatusCode.Conflict, ex.Message);
+        }
+        catch (ServicoExternoIndisponivelException ex)
+        {
+            _logger.LogWarning(ex, "Dependência indisponível: {Message}", ex.Message);
+            await EscreverRespostaAsync(context, HttpStatusCode.ServiceUnavailable, ex.Message);
         }
         catch (ClienteJaCadastradoException ex)
         {
@@ -65,7 +75,7 @@ public class ExceptionMiddleware
         catch (OrdemDeServicoStatusInvalidoException ex)
         {
             _logger.LogWarning(ex, "Status inválido: {Message}", ex.Message);
-            await EscreverRespostaAsync(context, HttpStatusCode.BadRequest, ex.Message);
+            await EscreverRespostaAsync(context, HttpStatusCode.Conflict, ex.Message);
         }
         catch (Exception ex)
         {

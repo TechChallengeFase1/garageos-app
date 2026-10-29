@@ -1,3 +1,4 @@
+using GarageOS.Api.Seguranca;
 using GarageOS.Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +9,7 @@ using GarageOS.Application.Validators.Veiculos;
 namespace GarageOS.Api.Controllers;
 
 /// <summary>Controller de gerenciamento de veículos</summary>
-[Authorize]
+[Authorize(Policy = Politicas.Admin)]
 [ApiController]
 [Route("api/[controller]")]
 public class VeiculosController : ControllerBase

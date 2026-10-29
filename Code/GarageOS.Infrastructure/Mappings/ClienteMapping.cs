@@ -23,7 +23,7 @@ namespace GarageOS.Infrastructure.Mappings
             {
                 documento.Property(d => d.Valor).HasColumnName("DocumentoValor")
                         .IsRequired().HasMaxLength(20);
-                documento.Property(d => d.Tipo).HasColumnName("DocumentoTipo")
+                documento.Property(d => d.Tipo).HasColumnName("DocumentoTipo").HasConversion<string>()
                         .IsRequired().HasMaxLength(20);
             });
 

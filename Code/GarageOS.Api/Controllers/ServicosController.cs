@@ -1,3 +1,4 @@
+using GarageOS.Api.Seguranca;
 using GarageOS.Application.DTOs.Servicos;
 using GarageOS.Application.UseCases.Servicos;
 using GarageOS.Application.Validators.Servicos;
@@ -8,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace GarageOS.Api.Controllers;
 
 /// <summary>Controller de gerenciamento de serviços</summary>
-[Authorize]
+[Authorize(Policy = Politicas.Admin)]
 [ApiController]
 [Route("api/[controller]")]
 public class ServicosController : ControllerBase
