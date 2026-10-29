@@ -24,6 +24,12 @@ Um ADR responde **"como"**: registra uma decisão estrutural interna, com as alt
 | [0001](adrs/0001-comunicacao-entre-repositorios.md) | Padrão de comunicação entre os repositórios | Aceito | SSM Parameter Store como contrato, Security Group como crachá |
 | [0002](adrs/0002-uso-do-hpa.md) | Uso do Horizontal Pod Autoscaler | Aceito | HPA v2 por CPU, 2–10 réplicas, com 4 pré-condições |
 | [0003](adrs/0003-exposicao-do-load-balancer.md) | Exposição do Load Balancer da aplicação | Aceito | NLB `internet-facing`, com validação do JWT na própria API |
+| [0004](adrs/0004-divisao-em-microsservicos.md) | Divisão em microsserviços | Proposto | OS, Billing e Execução, cada um com repositório, infra e banco próprios |
+| [0005](adrs/0005-saga-orquestrada.md) | Saga orquestrada no OS Service | Proposto | State machine no OS, pagamento antes da execução, 7 cenários de compensação |
+| [0006](adrs/0006-mensageria-sqs-masstransit.md) | Mensageria com SQS/SNS e MassTransit | Proposto | SQS + SNS com DLQ, MassTransit 8.x fixado, IRSA por serviço |
+| [0007](adrs/0007-dynamodb-no-billing.md) | DynamoDB como banco do Billing | Proposto | DynamoDB on-demand no Billing; OS e Execução em PostgreSQL |
+
+Divisão de tarefas da Fase 4: [fase-4/divisao-de-tarefas.md](fase-4/divisao-de-tarefas.md).
 
 ## Diagramas
 
