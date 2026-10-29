@@ -1,3 +1,4 @@
+using GarageOS.Application.Abstractions;
 using GarageOS.Infrastructure.Data;
 using GarageOS.IntegrationTests.Auth;
 using Microsoft.AspNetCore.Authentication;
@@ -11,6 +12,9 @@ namespace GarageOS.IntegrationTests.Fixtures;
 
 public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
+    /// <summary>Estoque do Execução Service, simulado</summary>
+    public EstoqueFalso Estoque { get; } = new();
+
     private readonly PostgreSqlContainer _pgContainer = new PostgreSqlBuilder("postgres:16")
         .WithDatabase("garageos_tests")
         .WithUsername("test")
@@ -36,6 +40,10 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
             services.AddDbContext<GarageOSDbContext>(options =>
                 options.UseNpgsql(_pgContainer.GetConnectionString()));
+
+            foreach (var descriptor in services.Where(d => d.ServiceType == typeof(IEstoqueClient)).ToList())
+                services.Remove(descriptor);
+            services.AddSingleton<IEstoqueClient>(Estoque);
 
             services.AddAuthentication(options =>
             {
