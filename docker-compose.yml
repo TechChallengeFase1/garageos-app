@@ -39,6 +39,10 @@ services:
     container_name: garageos-api
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      Swagger__Enabled: "true"
+      # Estoque do Execucao Service (docker compose do garageos-execucao-service,
+      # porta 8082 do host). Sem ele no ar, abrir OS com pecas responde 503.
+      Servicos__Execucao__BaseUrl: ${EXECUCAO_BASE_URL:-http://host.docker.internal:8082/}
       # Local roda uma instancia so, entao migrar no startup e conveniente.
       # Em Kubernetes isto fica desligado - quem migra e o Job.
       Database__MigrateOnStartup: "true"

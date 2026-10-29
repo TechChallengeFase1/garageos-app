@@ -2,21 +2,44 @@
   "info": {
     "name": "GarageOS - Fluxo Completo",
     "_postman_id": "garageos-flow-v1",
-    "description": "Collection completa do GarageOS cobrindo todo o fluxo: autenticação → cadastros → OS → orçamento → aprovação → entrega.\n\nVariáveis capturadas automaticamente via scripts nos testes:\n- token, clienteId, veiculoId, servicoId, estoqueId, osId, numeroOS\n\nBaseUrl padrão: http://localhost:5218\nAltere a variável de ambiente 'baseUrl' se necessário.",
+    "description": "Collection completa do GarageOS cobrindo todo o fluxo: autenticação → cadastros → OS → orçamento → aprovação → entrega.\n\nVariáveis capturadas automaticamente via scripts nos testes:\n- token, clienteId, veiculoId, servicoId, estoqueId, osId, numeroOS\n\nBaseUrl padrão: http://localhost:5218\nAltere a variável de ambiente 'baseUrl' se necessário.\n\nFase 4: orçamento e pagamento estão no Billing Service; estoque, reservas e execução no Execução Service. Esta coleção cobre o OS Service.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl",    "value": "http://localhost:5218" },
-    { "key": "token",      "value": "" },
-    { "key": "clienteId",  "value": "" },
-    { "key": "veiculoId",  "value": "" },
-    { "key": "servicoId",  "value": "" },
-    { "key": "estoqueId",  "value": "" },
-    { "key": "osId",       "value": "" },
-    { "key": "numeroOS",   "value": "" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5218"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "clienteId",
+      "value": ""
+    },
+    {
+      "key": "veiculoId",
+      "value": ""
+    },
+    {
+      "key": "servicoId",
+      "value": ""
+    },
+    {
+      "key": "estoqueId",
+      "value": ""
+    },
+    {
+      "key": "osId",
+      "value": ""
+    },
+    {
+      "key": "numeroOS",
+      "value": ""
+    }
   ],
   "item": [
-
     {
       "name": "01 - Autenticação",
       "item": [
@@ -36,7 +59,12 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": "{{baseUrl}}/api/auth/login",
             "body": {
               "mode": "raw",
@@ -47,7 +75,6 @@
         }
       ]
     },
-
     {
       "name": "02 - Cadastros Base",
       "item": [
@@ -68,8 +95,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": "{{baseUrl}}/api/clientes",
             "body": {
@@ -83,7 +116,12 @@
           "name": "GET Listar Clientes",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
             "url": "{{baseUrl}}/api/clientes",
             "description": "Verifica os clientes cadastrados no banco."
           }
@@ -105,8 +143,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": "{{baseUrl}}/api/veiculos",
             "body": {
@@ -131,8 +175,14 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": "{{baseUrl}}/api/veiculos/{{veiculoId}}/vincular-cliente",
             "body": {
@@ -146,7 +196,12 @@
           "name": "GET Veículo (verificar vínculo)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
             "url": "{{baseUrl}}/api/veiculos/{{veiculoId}}",
             "description": "Verifica se o veículo está vinculado ao cliente no banco."
           }
@@ -168,8 +223,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": "{{baseUrl}}/api/servicos",
             "body": {
@@ -178,53 +239,14 @@
             },
             "description": "Cadastra um serviço (mão de obra). O ID é salvo em {{servicoId}}."
           }
-        },
-        {
-          "name": "POST Cadastrar Item de Estoque",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const json = pm.response.json();",
-                  "pm.collectionVariables.set('estoqueId', json.id);",
-                  "pm.test('Estoque criado - ID salvo', () => pm.response.to.have.status(201));",
-                  "pm.test('Quantidade inicial = 10', () => pm.expect(json.quantidade).to.eql(10));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "url": "{{baseUrl}}/api/estoques",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nome\": \"Filtro de Óleo Bosch\",\n  \"quantidade\": 10,\n  \"valor\": 45.00,\n  \"dataEntrada\": \"2026-01-01\",\n  \"fornecedor\": \"Bosch\"\n}"
-            },
-            "description": "Cadastra uma peça no estoque com quantidade 10. O ID é salvo em {{estoqueId}}."
-          }
-        },
-        {
-          "name": "GET Estoque (quantidade inicial = 10)",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": "{{baseUrl}}/api/estoques/{{estoqueId}}",
-            "description": "Confirma que o estoque tem 10 unidades antes do fluxo de OS."
-          }
         }
       ]
     },
-
     {
       "name": "03 - Ordem de Serviço",
       "item": [
         {
-          "name": "POST Criar OS",
+          "name": "POST Abrir OS completa",
           "event": [
             {
               "listen": "test",
@@ -233,8 +255,46 @@
                   "const json = pm.response.json();",
                   "pm.collectionVariables.set('osId', json.id);",
                   "pm.collectionVariables.set('numeroOS', json.numeroOS);",
-                  "pm.test('OS criada com status Recebida', () => {",
+                  "pm.test('OS aberta em Recebida, com preço copiado', () => {",
                   "  pm.response.to.have.status(201);",
+                  "  pm.expect(json.status).to.eql('Recebida');",
+                  "  pm.expect(json.numeroOS).to.match(/^OS-\\d{4}-\\d{5}$/);",
+                  "  pm.expect(json.servicos[0].precoUnitario).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/ordensdeservico/abertura-completa",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": \"{{clienteId}}\",\n  \"veiculoId\": \"{{veiculoId}}\",\n  \"servicosIds\": [\n    \"{{servicoId}}\"\n  ],\n  \"pecas\": []\n}"
+            },
+            "description": "Abre a OS com cliente, veículo e serviços (Fase 4: substitui o antigo POST /api/ordensdeservico, que não existe mais). Nome e preço dos serviços são copiados para a OS. Status inicial: Recebida."
+          }
+        },
+        {
+          "name": "GET OS (status = Recebida)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('OS em Recebida', () => {",
+                  "  pm.response.to.have.status(200);",
                   "  pm.expect(json.status).to.eql('Recebida');",
                   "});"
                 ]
@@ -242,38 +302,31 @@
             }
           ],
           "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "url": "{{baseUrl}}/api/ordensdeservico",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"clienteId\": \"{{clienteId}}\",\n  \"veiculoId\": \"{{veiculoId}}\"\n}"
-            },
-            "description": "Cria a OS. Status inicial: Recebida. IDs salvos em {{osId}} e {{numeroOS}}."
-          }
-        },
-        {
-          "name": "GET OS (status = Recebida)",
-          "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}",
-            "description": "Verifica a OS recém-criada no banco."
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}"
           }
         },
         {
-          "name": "POST Adicionar Serviço na OS",
+          "name": "POST Adicionar Peça na OS",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
                   "const json = pm.response.json();",
-                  "pm.test('Serviço adicionado - status EmDiagnostico', () => {",
+                  "pm.test('Peça incluída e OS em diagnóstico', () => {",
                   "  pm.response.to.have.status(200);",
+                  "  pm.expect(json.pecas.length).to.be.above(0);",
                   "  pm.expect(json.status).to.eql('EmDiagnostico');",
                   "});"
                 ]
@@ -283,108 +336,69 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
-            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}/servicos",
+            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}/pecas",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"servicoId\": \"{{servicoId}}\"\n}"
+              "raw": "{\n  \"estoqueId\": \"{{estoqueId}}\",\n  \"quantidade\": 2\n}"
             },
-            "description": "Adiciona o serviço à OS. Status muda para EmDiagnostico automaticamente."
+            "description": "A peça é conferida no estoque do Execução Service (GET /api/estoques/{id} de lá) e entra com o valor do momento. Preencha {{estoqueId}} com uma peça cadastrada no Execução. Substitui o antigo /estoques."
           }
         },
         {
-          "name": "POST Adicionar Estoque na OS",
+          "name": "GET Histórico da OS",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
                   "const json = pm.response.json();",
-                  "pm.test('Estoque adicionado - status EmDiagnostico', () => {",
+                  "pm.test('Histórico começa em Recebida', () => {",
                   "  pm.response.to.have.status(200);",
-                  "  pm.expect(json.status).to.eql('EmDiagnostico');",
+                  "  pm.expect(json[0].statusNovo).to.eql('Recebida');",
                   "});"
                 ]
               }
             }
           ],
           "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}/estoques",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"estoqueId\": \"{{estoqueId}}\",\n  \"quantidade\": 3\n}"
-            },
-            "description": "Adiciona 3 unidades da peça na OS. Ainda NÃO dá baixa no estoque (só na aprovação)."
-          }
-        },
-        {
-          "name": "GET OS (servicos + estoques vinculados)",
-          "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}",
-            "description": "Verifica se serviço e estoque aparecem na OS no banco."
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}/historico",
+            "description": "Cada transição de status, com origem e X-Correlation-Id."
           }
         }
       ]
     },
-
     {
-      "name": "04 - Fluxo de Orçamento",
+      "name": "04 - Ciclo de Status (manual até a saga, etapa 5)",
       "item": [
         {
-          "name": "POST Gerar Orçamento",
+          "name": "PATCH Status -> AguardandoAprovacao",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
                   "const json = pm.response.json();",
-                  "pm.test('Orçamento gerado com preço correto', () => {",
-                  "  pm.response.to.have.status(200);",
-                  "  pm.expect(json.orcamento).to.not.be.null;",
-                  "  // 120 (serviço) + 45*3 (3 filtros) = 255",
-                  "  pm.expect(json.orcamento.preco).to.eql(255);",
-                  "});",
-                  "pm.test('Status orçamento = Pendente', () => {",
-                  "  pm.expect(json.orcamento.status).to.eql('Pendente');",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}/orcamento",
-            "description": "Gera orçamento calculando automaticamente: R$120 (serviço) + R$45×3 (peças) = R$255. Status: Pendente."
-          }
-        },
-        {
-          "name": "GET OS (orcamento Pendente)",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}",
-            "description": "Verifica o orçamento gerado no banco (status Pendente, preço R$255)."
-          }
-        },
-        {
-          "name": "POST Enviar Orçamento ao Cliente",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const json = pm.response.json();",
-                  "pm.test('OS aguardando aprovação', () => {",
+                  "pm.test('OS em AguardandoAprovacao', () => {",
                   "  pm.response.to.have.status(200);",
                   "  pm.expect(json.status).to.eql('AguardandoAprovacao');",
                   "});"
@@ -393,35 +407,36 @@
             }
           ],
           "request": {
-            "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}/orcamento/enviar",
-            "description": "Envia orçamento ao cliente. Status da OS → AguardandoAprovacao."
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"AguardandoAprovacao\"\n}"
+            },
+            "description": "Orçamento pedido ao Billing Service."
           }
         },
         {
-          "name": "GET OS (status = AguardandoAprovacao)",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}",
-            "description": "Confirma o status AguardandoAprovacao no banco."
-          }
-        },
-        {
-          "name": "PATCH Responder Orçamento - APROVAR",
+          "name": "PATCH Status -> AguardandoPagamento",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
                   "const json = pm.response.json();",
-                  "pm.test('OS em execução após aprovação', () => {",
+                  "pm.test('OS em AguardandoPagamento', () => {",
                   "  pm.response.to.have.status(200);",
-                  "  pm.expect(json.status).to.eql('EmExecucao');",
-                  "});",
-                  "pm.test('Orçamento aprovado', () => {",
-                  "  pm.expect(json.orcamento.status).to.eql('Aprovado');",
+                  "  pm.expect(json.status).to.eql('AguardandoPagamento');",
                   "});"
                 ]
               }
@@ -430,64 +445,104 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
-            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}/orcamento/resposta",
+            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}/status",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"aprovado\": true\n}"
+              "raw": "{\n  \"status\": \"AguardandoPagamento\"\n}"
             },
-            "description": "Cliente APROVA o orçamento. OS → EmExecucao. Estoque é decrementado (10 → 7)."
+            "description": "Cliente aprovou e as peças foram reservadas no Execução."
           }
         },
         {
-          "name": "GET Estoque (quantidade = 7 após aprovação)",
+          "name": "PATCH Status -> EmExecucao",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
                   "const json = pm.response.json();",
-                  "pm.test('Baixa no estoque: 10 - 3 = 7', () => {",
+                  "pm.test('OS em EmExecucao', () => {",
                   "  pm.response.to.have.status(200);",
-                  "  pm.expect(json.quantidade).to.eql(7);",
+                  "  pm.expect(json.status).to.eql('EmExecucao');",
                   "});"
                 ]
               }
             }
           ],
           "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": "{{baseUrl}}/api/estoques/{{estoqueId}}",
-            "description": "Confirma que a baixa foi dada no estoque: 10 - 3 = 7 unidades."
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"EmExecucao\"\n}"
+            },
+            "description": "Pagamento confirmado."
           }
         },
         {
-          "name": "GET OS (status = EmExecucao)",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}",
-            "description": "Verifica OS com status EmExecucao e orçamento Aprovado no banco."
-          }
-        }
-      ]
-    },
-
-    {
-      "name": "05 - Finalização e Entrega",
-      "item": [
-        {
-          "name": "PATCH Alterar Status para Entregue",
+          "name": "PATCH Status -> Finalizada",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
                   "const json = pm.response.json();",
-                  "pm.test('OS entregue', () => {",
+                  "pm.test('OS em Finalizada', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(json.status).to.eql('Finalizada');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Finalizada\"\n}"
+            },
+            "description": "Execução concluída no Execução Service."
+          }
+        },
+        {
+          "name": "PATCH Status -> Entregue",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('OS em Entregue', () => {",
                   "  pm.response.to.have.status(200);",
                   "  pm.expect(json.status).to.eql('Entregue');",
                   "});"
@@ -498,17 +553,62 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}/status",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": 5\n}"
+              "raw": "{\n  \"status\": \"Entregue\"\n}"
             },
-            "description": "Marca a OS como Entregue ao cliente (status 5 = Entregue)."
+            "description": "Veículo entregue ao cliente."
           }
         },
+        {
+          "name": "PATCH Status inválido (Entregue -> Recebida) = 400/409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Transição recusada', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([400, 409]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Recebida\"\n}"
+            },
+            "description": "A máquina de estados recusa transições fora da tabela."
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Acompanhamento",
+      "item": [
         {
           "name": "GET Acompanhar OS (público - sem token)",
           "event": [
@@ -532,172 +632,17 @@
           "name": "GET Listar Todas as OS",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
             "url": "{{baseUrl}}/api/ordensdeservico",
             "description": "Lista todas as OS para visão geral do banco."
           }
         }
       ]
-    },
-
-    {
-      "name": "06 - Fluxo Alternativo: Reprovar Orçamento",
-      "item": [
-        {
-          "name": "⚠️ LEIA: Como usar esta pasta",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": "{{baseUrl}}",
-            "description": "Esta pasta demonstra o fluxo de REPROVAÇÃO. Para testá-la:\n1. Execute as pastas 01-02 normalmente (Login + Cadastros)\n2. Execute a pasta 03 (Criar OS + Serviços/Estoque)\n3. Execute os 3 primeiros itens da pasta 04 (Gerar + Enviar orçamento)\n4. Execute esta pasta em vez de 'Responder APROVAR'\n\nA variável {{osId}} deve conter uma OS em AguardandoAprovacao para funcionar."
-          }
-        },
-        {
-          "name": "PATCH Responder Orçamento - REPROVAR",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const json = pm.response.json();",
-                  "pm.test('OS finalizada após reprovação', () => {",
-                  "  pm.response.to.have.status(200);",
-                  "  pm.expect(json.status).to.eql('Finalizada');",
-                  "});",
-                  "pm.test('Orçamento rejeitado', () => {",
-                  "  pm.expect(json.orcamento.status).to.eql('Rejeitado');",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "PATCH",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}/orcamento/resposta",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"aprovado\": false\n}"
-            },
-            "description": "Cliente REPROVA o orçamento. OS → Finalizada. Estoque NÃO é alterado."
-          }
-        },
-        {
-          "name": "GET Estoque (quantidade inalterada após reprovação)",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": "{{baseUrl}}/api/estoques/{{estoqueId}}",
-            "description": "Confirma que o estoque NÃO foi decrementado na reprovação."
-          }
-        },
-        {
-          "name": "GET OS (status = Finalizada)",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}",
-            "description": "Verifica OS com status Finalizada e orçamento Rejeitado no banco."
-          }
-        }
-      ]
-    },
-
-    {
-      "name": "07 - Operações Avulsas (consultas e edição)",
-      "item": [
-        {
-          "name": "GET Listar Serviços",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": "{{baseUrl}}/api/servicos"
-          }
-        },
-        {
-          "name": "PUT Alterar Serviço",
-          "request": {
-            "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "url": "{{baseUrl}}/api/servicos/{{servicoId}}",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nomeServico\": \"Troca de Óleo Sintético\",\n  \"preco\": 150.00\n}"
-            }
-          }
-        },
-        {
-          "name": "GET Listar Estoques",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": "{{baseUrl}}/api/estoques"
-          }
-        },
-        {
-          "name": "PUT Alterar Estoque",
-          "request": {
-            "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "url": "{{baseUrl}}/api/estoques/{{estoqueId}}",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nome\": \"Filtro de Óleo Bosch Premium\",\n  \"quantidade\": 20,\n  \"valor\": 50.00,\n  \"dataEntrada\": \"2026-01-01\",\n  \"fornecedor\": \"Bosch\"\n}"
-            }
-          }
-        },
-        {
-          "name": "GET Listar Veículos",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": "{{baseUrl}}/api/veiculos"
-          }
-        },
-        {
-          "name": "PUT Alterar Cliente",
-          "request": {
-            "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "url": "{{baseUrl}}/api/clientes/{{clienteId}}",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nome\": \"João da Silva Santos\",\n  \"email\": \"joao.santos@email.com\",\n  \"telefone\": \"11988888888\",\n  \"endereco\": {\n    \"rua\": \"Av. Paulista\",\n    \"numero\": \"1000\",\n    \"bairro\": \"Bela Vista\",\n    \"cidade\": \"São Paulo\",\n    \"estado\": \"SP\",\n    \"cep\": \"01310100\"\n  }\n}"
-            }
-          }
-        },
-        {
-          "name": "DELETE Deletar Estoque",
-          "request": {
-            "method": "DELETE",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": "{{baseUrl}}/api/estoques/{{estoqueId}}",
-            "description": "Hard delete — remove permanentemente."
-          }
-        },
-        {
-          "name": "DELETE Deletar Cliente (soft delete)",
-          "request": {
-            "method": "DELETE",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": "{{baseUrl}}/api/clientes/{{clienteId}}",
-            "description": "Soft delete — desativa o cliente sem remover dados."
-          }
-        }
-      ]
     }
-
   ]
 }

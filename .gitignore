@@ -86,3 +86,10 @@ appsettings.Development.json
 
 # SonarLint (configuração local do analisador)
 .sonarlint/
+
+# Terraform da pasta infra/ (o state real vive no S3)
+infra/.terraform/
+infra/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfplan
