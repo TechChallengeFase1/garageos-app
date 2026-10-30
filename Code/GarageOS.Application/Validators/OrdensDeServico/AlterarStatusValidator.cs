@@ -8,10 +8,11 @@ public class AlterarStatusValidator : AbstractValidator<AlterarStatusRequest>
 {
     public AlterarStatusValidator()
     {
-        // Se a transição é permitida a partir do status atual, quem decide é a
-        // própria OS. Aqui só se barra o que nunca é destino de uma mudança.
+        // Da solicitação do orçamento até a finalização, quem move a OS é a
+        // saga. Mudar o status à mão no meio dela deixaria reserva de peças e
+        // cobrança sem compensação. Sobra para a equipe a entrega do veículo.
         RuleFor(x => x.Status)
-            .IsInEnum().WithMessage("Status inválido.")
-            .NotEqual(StatusOrdemDeServico.Recebida).WithMessage("Uma OS não volta para 'Recebida'.");
+            .Equal(StatusOrdemDeServico.Entregue)
+            .WithMessage("Manualmente, só a entrega ('Entregue') pode ser registrada. As demais etapas são conduzidas pela saga.");
     }
 }

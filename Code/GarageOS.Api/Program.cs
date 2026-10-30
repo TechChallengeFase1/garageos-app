@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using GarageOS.Api.Extensions;
 using GarageOS.Infrastructure.Data;
+using GarageOS.Infrastructure.Mensageria;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
@@ -28,6 +29,7 @@ builder.Services.AddControllers()
 builder.Services.AddSwaggerWithJwt();
 
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddMensageria(builder.Configuration);
 builder.Services.AddApplicationServices();
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddGarageOSHealthChecks(builder.Configuration);

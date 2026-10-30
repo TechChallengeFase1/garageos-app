@@ -1,6 +1,7 @@
 using GarageOS.Application.Abstractions;
 using GarageOS.Application.DTOs.OrdensDeServico;
 using GarageOS.Application.Mappers;
+using GarageOS.Contracts.V1;
 using GarageOS.Domain.Entities;
 using GarageOS.Domain.Exceptions;
 using GarageOS.Domain.Repositories;
@@ -17,6 +18,7 @@ public class AbrirOrdemDeServicoCompletaUseCase
     private readonly IEstoqueClient _estoque;
     private readonly IMetricasDeNegocio _metricas;
     private readonly IContextoDaRequisicao _contexto;
+    private readonly IPublicadorDeEventos _publicador;
 
     public AbrirOrdemDeServicoCompletaUseCase(
         IOrdemDeServicoRepository repository,
@@ -25,7 +27,8 @@ public class AbrirOrdemDeServicoCompletaUseCase
         IServicoRepository servicoRepository,
         IEstoqueClient estoque,
         IMetricasDeNegocio metricas,
-        IContextoDaRequisicao contexto)
+        IContextoDaRequisicao contexto,
+        IPublicadorDeEventos publicador)
     {
         _repository = repository;
         _clienteRepository = clienteRepository;
@@ -34,6 +37,7 @@ public class AbrirOrdemDeServicoCompletaUseCase
         _estoque = estoque;
         _metricas = metricas;
         _contexto = contexto;
+        _publicador = publicador;
     }
 
     public async Task<OrdemDeServicoResponse> ExecutarAsync(AbrirOrdemDeServicoCompletaRequest request)
@@ -68,6 +72,10 @@ public class AbrirOrdemDeServicoCompletaUseCase
 
         var ordemDeServico = new OrdemDeServico(
             numeroOS, request.ClienteId, request.VeiculoId, servicos, pecas, _contexto.CorrelationId);
+
+        // Abre a saga da OS. Publicado ANTES de gravar de propósito: com o outbox,
+        // a mensagem entra na mesma transação da OS e só sai depois do commit.
+        await _publicador.PublicarAsync(new OrdemDeServicoAberta(ordemDeServico.Id, ordemDeServico.NumeroOS, ordemDeServico.ClienteId));
 
         try
         {

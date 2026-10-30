@@ -21,4 +21,10 @@ public interface IMetricasDeNegocio
 
     /// <summary>Registra uma falha no processamento de uma ordem de serviço</summary>
     void FalhaNoProcessamento(string numeroOS, string motivo);
+
+    /// <summary>Registra a passagem da saga da OS por uma etapa</summary>
+    void SagaAvancou(string numeroOS, string etapa);
+
+    /// <summary>Registra uma compensação da saga (o que falhou e o que foi desfeito)</summary>
+    void SagaCompensou(string numeroOS, string falha, string compensacoes);
 }
