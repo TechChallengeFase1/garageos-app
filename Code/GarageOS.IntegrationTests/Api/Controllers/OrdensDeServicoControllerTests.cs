@@ -152,19 +152,6 @@ public partial class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
     }
 
     [Fact]
-    public async Task POST_AdicionarItem_DepoisDoDiagnostico_DeveRetornar409()
-    {
-        var os = await CriarOSAsync();
-        await AlterarStatusAsync(os.Id, StatusOrdemDeServico.EmDiagnostico);
-        await AlterarStatusAsync(os.Id, StatusOrdemDeServico.AguardandoAprovacao);
-        var servico = await CadastrarServicoAsync("Pintura", 900m);
-
-        var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{os.Id}/servicos", new AdicionarServicoRequest { ServicoId = servico.Id });
-
-        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
-    }
-
-    [Fact]
     public async Task POST_AdicionarServico_OSInexistente_DeveRetornar404()
     {
         var servico = await CadastrarServicoAsync("Revisão", 100m);
@@ -177,55 +164,52 @@ public partial class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
     // ── Status e histórico ───────────────────────────────────────────────────
 
     [Fact]
-    public async Task CicloCompleto_DeveRegistrarHistoricoComCorrelationId()
+    public async Task POST_SolicitarOrcamento_DeveAbrirASagaEResponder202()
     {
         var os = await CriarOSAsync();
-        var passos = new[]
+
+        var response = await _client.PostAsync($"/api/ordensdeservico/{os.Id}/orcamento/solicitar", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Accepted);
+        // A saga roda em segundo plano (transporte em memória): espera ela registrar o pedido.
+        EstadoDaSagaDto? saga = null;
+        for (var tentativa = 0; tentativa < 50 && saga?.Etapa != "AguardandoOrcamento"; tentativa++)
         {
-            StatusOrdemDeServico.EmDiagnostico, StatusOrdemDeServico.AguardandoAprovacao, StatusOrdemDeServico.AguardandoPagamento,
-            StatusOrdemDeServico.EmExecucao, StatusOrdemDeServico.Finalizada, StatusOrdemDeServico.Entregue
-        };
-
-        foreach (var passo in passos)
-            (await AlterarStatusAsync(os.Id, passo, correlationId: $"corr-{passo}")).StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var historico = await _client.GetFromJsonAsync<List<HistoricoStatusResponse>>($"/api/ordensdeservico/{os.Id}/historico", JsonDefaults.Options);
-        historico!.Select(h => h.StatusNovo).Should().Equal(
-            "Recebida", "EmDiagnostico", "AguardandoAprovacao", "AguardandoPagamento", "EmExecucao", "Finalizada", "Entregue");
-        historico.Last().Should().Match<HistoricoStatusResponse>(h => h.Origem == "Manual" && h.CorrelationId == "corr-Entregue");
+            await Task.Delay(200);
+            var resposta = await _client.GetAsync($"/api/ordensdeservico/{os.Id}/saga");
+            if (resposta.IsSuccessStatusCode)
+                saga = await resposta.Content.ReadFromJsonAsync<EstadoDaSagaDto>(JsonDefaults.Options);
+        }
+        saga!.Etapa.Should().Be("AguardandoOrcamento");
+        saga.NumeroOS.Should().Be(os.NumeroOS);
     }
 
     [Fact]
-    public async Task PATCH_Status_TransicaoInvalida_DeveRetornar409()
+    public async Task POST_SolicitarOrcamento_OSInexistente_DeveRetornar404()
     {
-        var os = await CriarOSAsync();
+        var response = await _client.PostAsync($"/api/ordensdeservico/{Guid.NewGuid()}/orcamento/solicitar", null);
 
-        var response = await AlterarStatusAsync(os.Id, StatusOrdemDeServico.Entregue);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]
-    public async Task PATCH_Status_ParaRecebida_DeveRetornar400()
+    public async Task GET_Saga_Inexistente_DeveRetornar404()
+    {
+        var response = await _client.GetAsync($"/api/ordensdeservico/{Guid.NewGuid()}/saga");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    private sealed record EstadoDaSagaDto(Guid OrdemDeServicoId, string NumeroOS, string Etapa);
+
+    [Fact]
+    public async Task PATCH_Status_ManualDiferenteDeEntregue_DeveRetornar400()
     {
         var os = await CriarOSAsync();
 
-        var response = await AlterarStatusAsync(os.Id, StatusOrdemDeServico.Recebida);
+        var response = await AlterarStatusAsync(os.Id, StatusOrdemDeServico.Cancelada);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
-
-    [Fact]
-    public async Task GET_Listar_NaoDeveTrazerCanceladas()
-    {
-        var aberta = await CriarOSAsync();
-        var cancelada = await CriarOSAsync();
-        await AlterarStatusAsync(cancelada.Id, StatusOrdemDeServico.Cancelada);
-
-        var lista = await _client.GetFromJsonAsync<List<OrdemDeServicoResponse>>("/api/ordensdeservico", JsonDefaults.Options);
-
-        lista.Should().Contain(o => o.Id == aberta.Id);
-        lista.Should().NotContain(o => o.Id == cancelada.Id);
     }
 
     [Fact]
@@ -241,7 +225,8 @@ public partial class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
     public async Task GET_Acompanhar_SemToken_DeveMostrarEtapas()
     {
         var os = await CriarOSAsync();
-        await AlterarStatusAsync(os.Id, StatusOrdemDeServico.EmDiagnostico);
+        var outro = await CadastrarServicoAsync("Higienização " + Guid.NewGuid().ToString("N")[..6], 70m);
+        await _client.PostAsJsonAsync($"/api/ordensdeservico/{os.Id}/servicos", new AdicionarServicoRequest { ServicoId = outro.Id });
         var request = new HttpRequestMessage(HttpMethod.Get, $"/api/ordensdeservico/acompanhar/{os.NumeroOS}");
         request.Headers.Add("X-Test-No-Auth", "1");
 

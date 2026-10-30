@@ -60,12 +60,11 @@ public class ValidatorsDaOSTests
     }
 
     [Theory]
-    [InlineData(StatusOrdemDeServico.Cancelada, true)]
     [InlineData(StatusOrdemDeServico.Entregue, true)]
-    [InlineData(StatusOrdemDeServico.AguardandoPagamento, true)]
+    [InlineData(StatusOrdemDeServico.Cancelada, false)]
+    [InlineData(StatusOrdemDeServico.AguardandoPagamento, false)]
     [InlineData(StatusOrdemDeServico.Recebida, false)]
-    [InlineData((StatusOrdemDeServico)42, false)]
-    public void AlterarStatus_DeveBarrarSoOQueNuncaEDestino(StatusOrdemDeServico status, bool valido)
+    public void AlterarStatus_ManualSoAEntrega(StatusOrdemDeServico status, bool valido)
     {
         new AlterarStatusValidator().Validate(new AlterarStatusRequest { Status = status }).IsValid.Should().Be(valido);
     }
