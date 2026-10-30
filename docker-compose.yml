@@ -40,6 +40,13 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       Swagger__Enabled: "true"
+      # Rodando um servico sozinho, a mensageria fica em memoria: os eventos
+      # da saga nao saem do processo. Para o fluxo entre servicos, aponte os
+      # tres para o mesmo LocalStack (Mensageria__Transporte=AmazonSqs e
+      # Mensageria__ServiceUrl=http://host.docker.internal:4566).
+      Mensageria__Transporte: ${MENSAGERIA_TRANSPORTE:-InMemory}
+      Mensageria__ServiceUrl: ${MENSAGERIA_SERVICE_URL:-}
+      Mensageria__Ambiente: local
       # Estoque do Execucao Service (docker compose do garageos-execucao-service,
       # porta 8082 do host). Sem ele no ar, abrir OS com pecas responde 503.
       Servicos__Execucao__BaseUrl: ${EXECUCAO_BASE_URL:-http://host.docker.internal:8082/}
