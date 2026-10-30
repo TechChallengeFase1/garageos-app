@@ -72,7 +72,10 @@ if (args.Contains("--migrate"))
     return;
 }
 
-if (app.Environment.IsDevelopment())
+// Swagger por flag, e não por ambiente. Antes ele só abria em Development, e o
+// configmap do cluster forçava ASPNETCORE_ENVIRONMENT=Development para expô-lo,
+// arrastando junto todo o comportamento de desenvolvimento.
+if (builder.Configuration.GetValue("Swagger:Enabled", app.Environment.IsDevelopment()))
 {
     app.UseSwagger();
     app.UseSwaggerUI(options =>

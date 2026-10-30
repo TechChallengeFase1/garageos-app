@@ -22,9 +22,11 @@ public class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions
         if (Request.Headers.ContainsKey("X-Test-No-Auth"))
             return Task.FromResult(AuthenticateResult.Fail("No token provided (simulated)."));
 
+        // Role Admin: as rotas administrativas exigem a policy Admin.
         var claims = new[]
         {
-            new Claim(ClaimTypes.Name, "TestUser")
+            new Claim(ClaimTypes.Name, "TestUser"),
+            new Claim(ClaimTypes.Role, "Admin")
         };
 
         var identity = new ClaimsIdentity(claims, "Test");

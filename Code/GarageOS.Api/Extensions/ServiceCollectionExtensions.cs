@@ -1,6 +1,6 @@
 using GarageOS.Api.Middlewares;
+using GarageOS.Api.Seguranca;
 using GarageOS.Application.UseCases.Clientes;
-using GarageOS.Application.UseCases.Estoques;
 using GarageOS.Application.UseCases.OrdensDeServico;
 using GarageOS.Application.UseCases.Servicos;
 using GarageOS.Application.UseCases.Veiculos;
@@ -8,6 +8,7 @@ using GarageOS.Application.Validators.Veiculos;
 using GarageOS.Domain.Repositories;
 using GarageOS.Application.Abstractions;
 using GarageOS.Infrastructure.Data;
+using GarageOS.Infrastructure.ExternalServices;
 using GarageOS.Infrastructure.Observabilidade;
 using GarageOS.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -37,9 +38,19 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IServicoRepository, ServicoRepository>();
         services.AddScoped<IVeiculoRepository, VeiculoRepository>();
         services.AddScoped<IClienteRepository, ClienteRepository>();
-        services.AddScoped<IEstoqueRepository, EstoqueRepository>();
         services.AddScoped<IOrdemDeServicoRepository, OrdemDeServicoRepository>();
-        services.AddScoped<IOrcamentoRepository, OrcamentoRepository>();
+
+        // Estoque do Execução Service, por HTTP. Base URL por configuração: no
+        // cluster é o Service interno do namespace garageos-execucao.
+        services.AddHttpContextAccessor();
+        services.AddTransient<PropagarCabecalhosHandler>();
+        services.AddHttpClient<IEstoqueClient, EstoqueClient>(client =>
+                client.BaseAddress = new Uri(configuration["Servicos:Execucao:BaseUrl"]
+                    ?? "http://execucao.garageos-execucao.svc.cluster.local/"))
+            .AddHttpMessageHandler<PropagarCabecalhosHandler>()
+            .AddStandardResilienceHandler();
+
+        services.AddScoped<IContextoDaRequisicao, ContextoDaRequisicao>();
 
         // Publicacao de eventos de negocio. Singleton porque nao guarda estado
         // por requisicao e o agente do New Relic e global ao processo.
@@ -71,24 +82,14 @@ public static class ServiceCollectionExtensions
         services.AddScoped<AlterarClienteUseCase>();
         services.AddScoped<DeletarClienteUseCase>();
 
-        services.AddScoped<ListarEstoquesUseCase>();
-        services.AddScoped<CadastrarEstoqueUseCase>();
-        services.AddScoped<ObterEstoqueUseCase>();
-        services.AddScoped<AlterarEstoqueUseCase>();
-        services.AddScoped<DeletarEstoqueUseCase>();
 
         services.AddScoped<AbrirOrdemDeServicoCompletaUseCase>();
         services.AddScoped<ListarOrdensDeServicoUseCase>();
         services.AddScoped<ObterOrdemDeServicoUseCase>();
         services.AddScoped<AdicionarServicoNaOSUseCase>();
-        services.AddScoped<AdicionarEstoqueNaOSUseCase>();
+        services.AddScoped<AdicionarPecaNaOSUseCase>();
         services.AddScoped<AlterarStatusOrdemDeServicoUseCase>();
         services.AddScoped<AcompanharOrdemDeServicoUseCase>();
-        services.AddScoped<GerarOrcamentoUseCase>();
-        services.AddScoped<EnviarOrcamentoUseCase>();
-        services.AddScoped<ResponderOrcamentoUseCase>();
-        services.AddScoped<AlterarStatusServicoNaOSUseCase>();
-        services.AddScoped<CalcularAgingServicosUseCase>();
 
         return services;
     }
@@ -213,7 +214,14 @@ public static class ServiceCollectionExtensions
                 };
             });
 
-        services.AddAuthorization();
+        // Policies por papel. Até a Fase 3 bastava estar autenticado, então um
+        // token de cliente (emitido pela Lambda a partir do CPF) chamava os
+        // CRUDs administrativos.
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy(Politicas.Admin, policy => policy.RequireRole("Admin"));
+            options.AddPolicy(Politicas.Cliente, policy => policy.RequireClaim("cpf"));
+        });
 
         return services;
     }

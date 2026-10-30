@@ -15,20 +15,20 @@ public class AcompanharOrdemDeServicoUseCase
 
     public async Task<AcompanhamentoOSResponse> ExecutarAsync(string numeroOS)
     {
-        var ordemDeServico = await _repository.ObterPorNumeroOSAsync(numeroOS);
-        if (ordemDeServico == null)
-            throw new OrdemDeServicoNaoEncontradaException("Ordem de Serviço não encontrada.");
+        var ordemDeServico = await _repository.ObterPorNumeroOSAsync(numeroOS)
+            ?? throw new OrdemDeServicoNaoEncontradaException("Ordem de Serviço não encontrada.");
 
+        // Sem origem nem correlationId: o acompanhamento é público.
         return new AcompanhamentoOSResponse
         {
             NumeroOS = ordemDeServico.NumeroOS,
             Status = ordemDeServico.Status.ToString(),
             Servicos = ordemDeServico.Servicos
-                .Select(s => new AcompanhamentoServicoResponse
-                {
-                    NomeServico = s.Servico?.NomeServico ?? string.Empty,
-                    StatusExecucao = s.Status.ToString()
-                })
+                .Select(s => new AcompanhamentoServicoResponse { NomeServico = s.Nome })
+                .ToList(),
+            Historico = ordemDeServico.Historico
+                .OrderBy(h => h.OcorridoEm)
+                .Select(h => new AcompanhamentoEtapaResponse { Status = h.StatusNovo.ToString(), Em = h.OcorridoEm })
                 .ToList()
         };
     }

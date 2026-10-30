@@ -1,29 +1,40 @@
 using GarageOS.Application.Abstractions;
 using GarageOS.Application.DTOs.OrdensDeServico;
-using GarageOS.Domain.Entities;
+using GarageOS.Application.Mappers;
 using GarageOS.Domain.Exceptions;
 using GarageOS.Domain.Repositories;
 
 namespace GarageOS.Application.UseCases.OrdensDeServico;
 
+/// <summary>Mudança de status feita pela equipe</summary>
+/// <remarks>
+/// Segue a mesma tabela de transições que a saga vai usar na etapa 5. Até lá,
+/// é por aqui que a OS avança; depois, a operação manual fica para exceções
+/// (cancelar, entregar).
+/// </remarks>
 public class AlterarStatusOrdemDeServicoUseCase
 {
+    /// <summary>Origem registrada no histórico para mudanças feitas pela API</summary>
+    public const string OrigemManual = "Manual";
+
     private readonly IOrdemDeServicoRepository _repository;
     private readonly IMetricasDeNegocio _metricas;
+    private readonly IContextoDaRequisicao _contexto;
 
     public AlterarStatusOrdemDeServicoUseCase(
         IOrdemDeServicoRepository repository,
-        IMetricasDeNegocio metricas)
+        IMetricasDeNegocio metricas,
+        IContextoDaRequisicao contexto)
     {
         _repository = repository;
         _metricas = metricas;
+        _contexto = contexto;
     }
 
     public async Task<OrdemDeServicoResponse> ExecutarAsync(Guid ordemDeServicoId, AlterarStatusRequest request)
     {
-        var ordemDeServico = await _repository.ObterPorIdAsync(ordemDeServicoId);
-        if (ordemDeServico == null)
-            throw new OrdemDeServicoNaoEncontradaException();
+        var ordemDeServico = await _repository.ObterPorIdAsync(ordemDeServicoId)
+            ?? throw new OrdemDeServicoNaoEncontradaException();
 
         // Capturado ANTES da mudanca: depois do AlterarStatus o estado
         // anterior nao existe mais em lugar nenhum.
@@ -33,7 +44,7 @@ public class AlterarStatusOrdemDeServicoUseCase
 
         try
         {
-            ordemDeServico.AlterarStatus(request.Status);
+            ordemDeServico.AlterarStatus(request.Status, OrigemManual, _contexto.CorrelationId);
             await _repository.AtualizarAsync(ordemDeServico);
         }
         catch (Exception ex)
@@ -53,52 +64,6 @@ public class AlterarStatusOrdemDeServicoUseCase
             ordemDeServico.Status.ToString(),
             minutosNoStatusAnterior);
 
-        return MapearParaResponse(ordemDeServico);
-    }
-
-    private static OrdemDeServicoResponse MapearParaResponse(OrdemDeServico ordemDeServico)
-    {
-        return new OrdemDeServicoResponse
-        {
-            Id = ordemDeServico.Id,
-            NumeroOS = ordemDeServico.NumeroOS,
-            Status = ordemDeServico.Status,
-            CriadoEm = ordemDeServico.CriadoEm,
-            FinalizadaEm = ordemDeServico.FinalizadaEm,
-            AtualizadoEm = ordemDeServico.AtualizadoEm,
-            ClienteId = ordemDeServico.ClienteId,
-            VeiculoId = ordemDeServico.VeiculoId,
-            Servicos = ordemDeServico.Servicos
-                .Select(s => new ServicoItemResponse
-                {
-                    Id = s.Id,
-                    ServicoId = s.ServicoId,
-                    ServicoNome = s.Servico?.NomeServico ?? string.Empty,
-                    Status = s.Status,
-                    CriadoEm = s.CriadoEm,
-                    IniciadaEm = s.IniciadaEm,
-                    FinalizadaEm = s.FinalizadaEm
-                })
-                .ToList(),
-            Estoques = ordemDeServico.Estoques
-                .Select(e => new EstoqueItemResponse
-                {
-                    Id = e.Id,
-                    EstoqueId = e.EstoqueId,
-                    EstoqueNome = e.Estoque?.Nome ?? string.Empty,
-                    Quantidade = e.Quantidade
-                })
-                .ToList(),
-            Orcamento = ordemDeServico.Orcamento != null
-                ? new OrcamentoResponse
-                {
-                    Id = ordemDeServico.Orcamento.Id,
-                    Status = ordemDeServico.Orcamento.Status,
-                    Preco = ordemDeServico.Orcamento.Preco,
-                    CriadoEm = ordemDeServico.Orcamento.CriadoEm,
-                    AtualizadoEm = ordemDeServico.Orcamento.AtualizadoEm
-                }
-                : null
-        };
+        return ordemDeServico.ParaResponse();
     }
 }

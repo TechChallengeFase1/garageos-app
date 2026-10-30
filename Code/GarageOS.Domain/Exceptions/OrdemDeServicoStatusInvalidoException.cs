@@ -11,4 +11,9 @@ public class OrdemDeServicoStatusInvalidoException : Exception
         : base(message)
     {
     }
+
+    public OrdemDeServicoStatusInvalidoException(string message, Exception innerException)
+        : base(message, innerException)
+    {
+    }
 }

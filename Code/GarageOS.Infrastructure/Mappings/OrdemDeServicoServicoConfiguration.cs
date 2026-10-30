@@ -15,14 +15,19 @@ public class OrdemDeServicoServicoConfiguration : IEntityTypeConfiguration<Ordem
         builder.Property(x => x.Id)
             .ValueGeneratedNever();
 
-        builder.Property(x => x.Status)
+        builder.Property(x => x.Nome)
             .IsRequired()
-            .HasMaxLength(50);
+            .HasMaxLength(150);
+
+        builder.Property(x => x.PrecoUnitario)
+            .IsRequired()
+            .HasColumnType("numeric(18,2)");
 
         builder.Property(x => x.CriadoEm)
             .IsRequired();
 
-        builder.HasOne(x => x.Servico)
+        // O catálogo de serviços é do próprio OS Service: a FK continua.
+        builder.HasOne<Servico>()
             .WithMany()
             .HasForeignKey(x => x.ServicoId)
             .OnDelete(DeleteBehavior.Restrict);

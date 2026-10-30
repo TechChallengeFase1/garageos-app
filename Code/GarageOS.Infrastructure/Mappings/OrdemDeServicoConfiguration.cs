@@ -19,9 +19,16 @@ public class OrdemDeServicoConfiguration : IEntityTypeConfiguration<OrdemDeServi
             .IsRequired()
             .HasMaxLength(20);
 
+        // Único: a sequência garante, o índice confirma.
+        builder.HasIndex(x => x.NumeroOS)
+            .IsUnique();
+
+        // Texto, e não inteiro: um status novo no meio do enum não muda o
+        // significado do que já está gravado.
         builder.Property(x => x.Status)
             .IsRequired()
-            .HasMaxLength(50);
+            .HasConversion<string>()
+            .HasMaxLength(30);
 
         builder.Property(x => x.CriadoEm)
             .IsRequired();
@@ -29,29 +36,41 @@ public class OrdemDeServicoConfiguration : IEntityTypeConfiguration<OrdemDeServi
         builder.Property(x => x.AtualizadoEm)
             .IsRequired();
 
-        builder.HasOne(x => x.Cliente)
+        builder.Ignore(x => x.ValorEstimado);
+
+        // Token de concorrência (xmin do PostgreSQL): duas mudanças simultâneas
+        // na mesma OS não se sobrescrevem em silêncio.
+        builder.Property<uint>("Versao")
+            .IsRowVersion();
+
+        // Cliente e veículo são do próprio OS Service: a FK continua.
+        builder.HasOne<Cliente>()
             .WithMany()
             .HasForeignKey(x => x.ClienteId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(x => x.Veiculo)
+        builder.HasOne<Veiculo>()
             .WithMany()
             .HasForeignKey(x => x.VeiculoId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasOne(x => x.Orcamento)
-            .WithOne()
-            .HasForeignKey<Orcamento>(x => x.OrdemDeServicoId)
-            .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(x => x.Servicos)
             .WithOne()
             .HasForeignKey(x => x.OrdemDeServicoId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasMany(x => x.Estoques)
+        builder.HasMany(x => x.Pecas)
             .WithOne()
             .HasForeignKey(x => x.OrdemDeServicoId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(x => x.Historico)
+            .WithOne()
+            .HasForeignKey(x => x.OrdemDeServicoId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(x => x.Servicos).UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.Navigation(x => x.Pecas).UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.Navigation(x => x.Historico).UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

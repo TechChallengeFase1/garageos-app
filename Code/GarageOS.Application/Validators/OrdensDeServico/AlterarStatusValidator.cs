@@ -8,8 +8,10 @@ public class AlterarStatusValidator : AbstractValidator<AlterarStatusRequest>
 {
     public AlterarStatusValidator()
     {
+        // Se a transição é permitida a partir do status atual, quem decide é a
+        // própria OS. Aqui só se barra o que nunca é destino de uma mudança.
         RuleFor(x => x.Status)
-            .Must(status => status == StatusOrdemDeServico.Finalizada || status == StatusOrdemDeServico.Entregue)
-            .WithMessage("Apenas os status 'Finalizada' e 'Entregue' podem ser definidos manualmente.");
+            .IsInEnum().WithMessage("Status inválido.")
+            .NotEqual(StatusOrdemDeServico.Recebida).WithMessage("Uma OS não volta para 'Recebida'.");
     }
 }

@@ -1,10 +1,10 @@
-# GarageOS — Aplicação
+# GarageOS — OS Service
 
 Sistema de gestão para oficinas mecânicas — controle de clientes, veículos, serviços, estoque e ordens de serviço (OS), com fluxo completo de orçamento, execução e acompanhamento público pelo cliente.
 
 Projeto desenvolvido como **Tech Challenge** da Pós-graduação em Arquitetura de Software.
 
-> Este é o repositório da **aplicação**. A solução completa é composta por quatro repositórios — veja [Arquitetura da solução](#arquitetura-da-solução).
+> **Fase 4:** este repositório (antes `garageos-app`) virou o **OS Service**, um dos três microsserviços. Ele ficou com a ordem de serviço, clientes, veículos, catálogo de serviços, status e histórico. Orçamento e pagamento foram para o [`garageos-billing-service`](https://github.com/TechChallengeFase1/garageos-billing-service) (DynamoDB); estoque, reservas, fila de execução e aging para o [`garageos-execucao-service`](https://github.com/TechChallengeFase1/garageos-execucao-service). As decisões estão nos [ADRs 0004 a 0007](docs/adrs/). Seções abaixo que ainda falam do monólito descrevem a Fase 3.
 
 ---
 
@@ -119,14 +119,15 @@ Também há uma coleção Postman pronta para importar: [Code/Postman/GarageOS.p
 |---|---|---|---|
 | `POST` | `/auth` *(no API Gateway)* | pública | Autenticação do cliente por CPF, devolve JWT |
 | `POST` | `/api/Auth/login` | pública | Login administrativo (usuário e senha) |
-| `POST` | `/api/OrdensDeServico/abertura-completa` | JWT | Abre a OS com serviços e peças |
-| `POST` | `/api/OrdensDeServico/{id}/orcamento` | JWT | Gera o orçamento |
-| `POST` | `/api/OrdensDeServico/{id}/orcamento/enviar` | JWT | Envia ao cliente (`AguardandoAprovacao`) |
-| `PATCH` | `/api/OrdensDeServico/{id}/orcamento/resposta` | pública | Aprovação ou recusa pelo cliente |
-| `PATCH` | `/api/OrdensDeServico/{id}/status` | JWT | Altera o status da OS |
-| `GET` | `/api/OrdensDeServico/aging` | JWT | Tempo médio por status |
-| `GET` | `/api/OrdensDeServico/acompanhar/{numeroOS}` | pública | Acompanhamento pelo cliente |
+| `POST` | `/api/OrdensDeServico/abertura-completa` | Admin | Abre a OS em `Recebida`, com nome e preço de serviços e peças copiados |
+| `POST` | `/api/OrdensDeServico/{id}/servicos` | Admin | Inclui um serviço (até o diagnóstico) |
+| `POST` | `/api/OrdensDeServico/{id}/pecas` | Admin | Inclui uma peça, conferida no Execução Service |
+| `PATCH` | `/api/OrdensDeServico/{id}/status` | Admin | Altera o status, só por transições permitidas |
+| `GET` | `/api/OrdensDeServico/{id}/historico` | Admin | Histórico de status com origem e correlation id |
+| `GET` | `/api/OrdensDeServico/acompanhar/{numeroOS}` | pública | Acompanhamento pelo cliente, com as etapas |
 | `GET` | `/health/live` · `/health/ready` | pública | Health checks |
+
+Máquina de estados da OS: `Recebida → EmDiagnostico → AguardandoAprovacao → AguardandoPagamento → EmExecucao → Finalizada → Entregue`, e `Cancelada` a partir de qualquer status não final. A partir da etapa 5 a saga conduz as transições do meio.
 
 Há ainda os CRUDs de `Clientes`, `Veiculos`, `Servicos` e `Estoques`, todos protegidos por JWT.
 

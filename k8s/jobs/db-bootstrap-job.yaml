@@ -1,0 +1,63 @@
+# Job que cria (ou atualiza) a role somente leitura da Lambda de login.
+#
+# Roda DEPOIS do Job de migrations, porque concede SELECT na tabela "Clientes".
+# A pipeline aplica nesta ordem:
+#
+#   1. migrations-job.yaml  (espera completar)
+#   2. kubectl create configmap garageos-os-db-bootstrap-sql \
+#        --from-file=sql/criar-auth-reader.sql --dry-run=client -o yaml | kubectl apply -f -
+#   3. kubectl delete job garageos-os-db-bootstrap -n garageos-os --ignore-not-found
+#   4. kubectl apply -f k8s/jobs/db-bootstrap-job.yaml (espera completar)
+#
+# O SQL vem do arquivo do repositorio, montado por ConfigMap: um lugar so para
+# mudar a lista de colunas.
+#
+# Segredo esperado: garageos-os-db-bootstrap, montado pela pipeline a partir do
+# Secrets Manager, com PGHOST, PGPORT, PGDATABASE, PGUSER e PGPASSWORD do
+# usuario master (garageos-producao-os/rds/master) e AUTH_READER_PASSWORD
+# (garageos-producao-os/rds/auth-reader). A imagem postgres:16-alpine nao tem
+# AWS CLI e nao precisa: so executa SQL.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: garageos-os-db-bootstrap
+  namespace: garageos-os
+  labels:
+    app.kubernetes.io/name: garageos-os-db-bootstrap
+    app.kubernetes.io/part-of: garageos
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        app: garageos-os-db-bootstrap
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: psql
+          image: postgres:16-alpine
+          command: ["sh", "-c"]
+          # PGSSLMODE=require: o RDS exige TLS.
+          args:
+            - psql -v senha="$AUTH_READER_PASSWORD" -f /sql/criar-auth-reader.sql
+          env:
+            - name: PGSSLMODE
+              value: require
+          envFrom:
+            - secretRef:
+                name: garageos-os-db-bootstrap
+          volumeMounts:
+            - name: sql
+              mountPath: /sql
+              readOnly: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
+      volumes:
+        - name: sql
+          configMap:
+            name: garageos-os-db-bootstrap-sql

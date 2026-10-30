@@ -1,4 +1,5 @@
-﻿using GarageOS.Application.DTOs.Clientes;
+using GarageOS.Api.Seguranca;
+using GarageOS.Application.DTOs.Clientes;
 using GarageOS.Application.UseCases.Clientes;
 using GarageOS.Application.Validators.Clientes;
 using GarageOS.Domain.Exceptions;
@@ -8,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace GarageOS.Api.Controllers;
 
 /// <summary>Controller de gerenciamento de clientes</summary>
-[Authorize]
+[Authorize(Policy = Politicas.Admin)]
 [ApiController]
 [Route("api/[controller]")]
 public class ClientesController : ControllerBase

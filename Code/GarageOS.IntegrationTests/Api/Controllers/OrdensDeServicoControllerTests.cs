@@ -1,11 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using FluentAssertions;
 using GarageOS.Application.DTOs.Clientes;
-using GarageOS.Application.DTOs.Estoques;
 using GarageOS.Application.DTOs.OrdensDeServico;
 using GarageOS.Application.DTOs.Servicos;
 using GarageOS.Application.DTOs.Veiculos;
@@ -15,496 +12,299 @@ using GarageOS.IntegrationTests.Helpers;
 
 namespace GarageOS.IntegrationTests.Api.Controllers;
 
-public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
+public partial class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
 {
+    private readonly ApiFactory _factory;
     private readonly HttpClient _client;
 
     public OrdensDeServicoControllerTests(ApiFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
     }
 
-    // ── GET /api/ordensdeservico ─────────────────────────────────────────────
+    [GeneratedRegex(@"^OS-\d{4}-\d{5}$")]
+    private static partial Regex FormatoNumeroOS();
+
+    // ── Abertura ─────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task GET_ListarOrdensDeServico_DeveRetornar200ComLista()
+    public async Task POST_AbrirCompleta_DeveAbrirEmRecebidaComPrecosCopiados()
     {
-        var response = await _client.GetAsync("/api/ordensdeservico");
+        var servico = await CadastrarServicoAsync("Revisão Completa", 200m);
+        var peca = _factory.Estoque.Cadastrar("Filtro de óleo", 35m, 10);
 
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var lista = await response.Content.ReadFromJsonAsync<IEnumerable<OrdemDeServicoResponse>>(JsonDefaults.Options);
-        lista.Should().NotBeNull();
-    }
-
-    // ── POST /api/ordensdeservico/abertura-completa ──────────────────────────
-
-    [Fact]
-    public async Task POST_AbrirCompleta_ComDadosValidos_DeveRetornar201()
-    {
-        var cliente = await CadastrarClienteAsync();
-        var veiculo = await CadastrarVeiculoAsync();
-        var servico = await CadastrarServicoAsync("Revisao Completa", 200.00m);
-
-        var request = new AbrirOrdemDeServicoCompletaRequest
-        {
-            ClienteId = cliente!.Id,
-            VeiculoId = veiculo!.Id,
-            ServicosIds = [servico!.Id],
-            Pecas = []
-        };
-
-        var response = await _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa", request);
+        var response = await AbrirAsync([servico.Id], [new PecaRequest { EstoqueId = peca.Id, Quantidade = 2 }]);
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var os = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
-        os!.Id.Should().NotBeEmpty();
-        os.NumeroOS.Should().StartWith("OS-");
-        os.ClienteId.Should().Be(cliente.Id);
-        os.VeiculoId.Should().Be(veiculo.Id);
+        var os = (await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options))!;
+        os.Status.Should().Be(StatusOrdemDeServico.Recebida);
+        os.NumeroOS.Should().MatchRegex(FormatoNumeroOS());
+        os.Servicos.Should().ContainSingle(s => s.ServicoNome == "Revisão Completa" && s.PrecoUnitario == 200m);
+        os.Pecas.Should().ContainSingle(p => p.Nome == "Filtro de óleo" && p.Quantidade == 2 && p.Subtotal == 70m);
+        os.ValorEstimado.Should().Be(270m);
     }
 
     [Fact]
-    public async Task POST_AbrirCompleta_ComClienteInexistente_DeveRetornar400()
+    public async Task POST_AbrirCompleta_Simultaneas_DevemTerNumerosDistintos()
     {
+        var servico = await CadastrarServicoAsync("Lavagem", 50m);
+        var cliente = await CadastrarClienteAsync();
         var veiculo = await CadastrarVeiculoAsync();
-        var servico = await CadastrarServicoAsync("Troca de Pneu", 100.00m);
 
-        var request = new AbrirOrdemDeServicoCompletaRequest
+        var respostas = await Task.WhenAll(Enumerable.Range(0, 5).Select(_ =>
+            _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa", new AbrirOrdemDeServicoCompletaRequest
+            {
+                ClienteId = cliente.Id, VeiculoId = veiculo.Id, ServicosIds = [servico.Id], Pecas = []
+            })));
+
+        respostas.Should().OnlyContain(r => r.StatusCode == HttpStatusCode.Created);
+        var numeros = await Task.WhenAll(respostas.Select(async r =>
+            (await r.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options))!.NumeroOS));
+        numeros.Distinct().Should().HaveCount(5);
+    }
+
+    [Fact]
+    public async Task POST_AbrirCompleta_ClienteInexistente_DeveRetornar404()
+    {
+        var servico = await CadastrarServicoAsync("Alinhamento", 80m);
+        var veiculo = await CadastrarVeiculoAsync();
+
+        var response = await _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa", new AbrirOrdemDeServicoCompletaRequest
         {
-            ClienteId = Guid.NewGuid(),
-            VeiculoId = veiculo!.Id,
-            ServicosIds = [servico!.Id],
-            Pecas = []
-        };
+            ClienteId = Guid.NewGuid(), VeiculoId = veiculo.Id, ServicosIds = [servico.Id], Pecas = []
+        });
 
-        var response = await _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa", request);
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task POST_AbrirCompleta_PecaInexistenteNoExecucao_DeveRetornar404()
+    {
+        var servico = await CadastrarServicoAsync("Balanceamento", 60m);
+
+        var response = await AbrirAsync([servico.Id], [new PecaRequest { EstoqueId = Guid.NewGuid(), Quantidade = 1 }]);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task POST_AbrirCompleta_PecaSemQuantidade_DeveRetornar409()
+    {
+        var servico = await CadastrarServicoAsync("Freios", 150m);
+        var peca = _factory.Estoque.Cadastrar("Pastilha", 90m, 1);
+
+        var response = await AbrirAsync([servico.Id], [new PecaRequest { EstoqueId = peca.Id, Quantidade = 4 }]);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task POST_AbrirCompleta_Invalido_DeveRetornar400()
+    {
+        var response = await _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa",
+            new AbrirOrdemDeServicoCompletaRequest { ServicosIds = [], Pecas = null });
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
-    public async Task POST_AbrirCompleta_ComVeiculoInexistente_DeveRetornar400()
+    public async Task POST_AbrirCompleta_SemToken_DeveRetornar401()
     {
-        var cliente = await CadastrarClienteAsync();
-        var servico = await CadastrarServicoAsync("Troca de Pastilha", 90.00m);
-
-        var request = new AbrirOrdemDeServicoCompletaRequest
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/ordensdeservico/abertura-completa")
         {
-            ClienteId = cliente!.Id,
-            VeiculoId = Guid.NewGuid(),
-            ServicosIds = [servico!.Id],
-            Pecas = []
+            Content = JsonContent.Create(new AbrirOrdemDeServicoCompletaRequest())
         };
+        request.Headers.Add("X-Test-No-Auth", "1");
 
-        var response = await _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa", request);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
-
-    [Fact]
-    public async Task POST_AbrirCompleta_DuasOsSequenciais_DeveTerNumerosSequenciais()
-    {
-        var cliente = await CadastrarClienteAsync();
-        var veiculo = await CadastrarVeiculoAsync();
-        var servico = await CadastrarServicoAsync("Diagnostico", 50.00m);
-
-        var request = new AbrirOrdemDeServicoCompletaRequest
-        {
-            ClienteId = cliente!.Id,
-            VeiculoId = veiculo!.Id,
-            ServicosIds = [servico!.Id],
-            Pecas = []
-        };
-
-        var r1 = await _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa", request);
-        var r2 = await _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa", request);
-
-        var os1 = await r1.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
-        var os2 = await r2.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
-
-        os1!.NumeroOS.Should().NotBe(os2!.NumeroOS);
-    }
-
-    [Fact]
-    public async Task POST_AbrirCompleta_ComPecasVazia_DeveRetornar201ComServicoVinculadoESemEstoques()
-    {
-        var cliente = await CadastrarClienteAsync();
-        var veiculo = await CadastrarVeiculoAsync();
-        var servico = await CadastrarServicoAsync("Alinhamento Direcao", 130.00m);
-
-        var request = new AbrirOrdemDeServicoCompletaRequest
-        {
-            ClienteId = cliente!.Id,
-            VeiculoId = veiculo!.Id,
-            ServicosIds = [servico!.Id],
-            Pecas = []
-        };
-
-        var response = await _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa", request);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var os = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
-        os!.NumeroOS.Should().StartWith("OS-");
-        os.Servicos.Should().ContainSingle(s => s.ServicoId == servico.Id);
-        os.Estoques.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task POST_AbrirCompleta_ComPecasPreenchidas_DevemEstarVinculadasSemDecrementarEstoque()
-    {
-        var cliente = await CadastrarClienteAsync();
-        var veiculo = await CadastrarVeiculoAsync();
-        var servico = await CadastrarServicoAsync("Troca de Correia", 220.00m);
-        var estoque = await CadastrarEstoqueAsync("Correia Dentada", 8, 60.00m);
-
-        var request = new AbrirOrdemDeServicoCompletaRequest
-        {
-            ClienteId = cliente!.Id,
-            VeiculoId = veiculo!.Id,
-            ServicosIds = [servico!.Id],
-            Pecas = [new PecaRequest { EstoqueId = estoque!.Id, Quantidade = 2 }]
-        };
-
-        var response = await _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa", request);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var os = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
-        os!.Estoques.Should().ContainSingle(e => e.EstoqueId == estoque.Id && e.Quantidade == 2);
-
-        var estoqueAposAbertura = await _client.GetFromJsonAsync<EstoqueResponse>($"/api/estoques/{estoque.Id}", JsonDefaults.Options);
-        estoqueAposAbertura!.Quantidade.Should().Be(8);
-    }
-
-    [Fact]
-    public async Task POST_AbrirCompleta_ComPecasAusenteDoJson_DeveRetornar400()
-    {
-        var cliente = await CadastrarClienteAsync();
-        var veiculo = await CadastrarVeiculoAsync();
-        var servico = await CadastrarServicoAsync("Revisao 10 mil km", 180.00m);
-
-        var payloadSemPecas = new Dictionary<string, object>
-        {
-            ["clienteId"] = cliente!.Id,
-            ["veiculoId"] = veiculo!.Id,
-            ["servicosIds"] = new[] { servico!.Id }
-        };
-        var json = JsonSerializer.Serialize(payloadSemPecas);
-        json.Should().NotContain("pecas", "o teste precisa garantir que a chave 'pecas' esteja totalmente ausente do JSON");
-
-        using var content = new StringContent(json, Encoding.UTF8, "application/json");
-        var response = await _client.PostAsync("/api/ordensdeservico/abertura-completa", content);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
-
-    [Fact]
-    public async Task POST_AbrirCompleta_ComServicosIdsVazio_DeveRetornar400()
-    {
-        var cliente = await CadastrarClienteAsync();
-        var veiculo = await CadastrarVeiculoAsync();
-
-        var request = new AbrirOrdemDeServicoCompletaRequest
-        {
-            ClienteId = cliente!.Id,
-            VeiculoId = veiculo!.Id,
-            ServicosIds = [],
-            Pecas = []
-        };
-
-        var response = await _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa", request);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
-
-    [Fact]
-    public async Task POST_AbrirCompleta_ComServicoInexistenteNaLista_DeveRetornar400ENadaPersistido()
-    {
-        var cliente = await CadastrarClienteAsync();
-        var veiculo = await CadastrarVeiculoAsync();
-        var servicoValido = await CadastrarServicoAsync("Servico Valido", 70.00m);
-
-        var contagemAntes = (await _client.GetFromJsonAsync<List<OrdemDeServicoResponse>>("/api/ordensdeservico", JsonDefaults.Options))!.Count;
-
-        var request = new AbrirOrdemDeServicoCompletaRequest
-        {
-            ClienteId = cliente!.Id,
-            VeiculoId = veiculo!.Id,
-            ServicosIds = [servicoValido!.Id, Guid.NewGuid()],
-            Pecas = []
-        };
-
-        var response = await _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa", request);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var contagemDepois = (await _client.GetFromJsonAsync<List<OrdemDeServicoResponse>>("/api/ordensdeservico", JsonDefaults.Options))!.Count;
-        contagemDepois.Should().Be(contagemAntes);
-    }
-
-    [Fact]
-    public async Task POST_AbrirCompleta_ComEstoqueInexistenteNaLista_DeveRetornar400ENadaPersistido()
-    {
-        var cliente = await CadastrarClienteAsync();
-        var veiculo = await CadastrarVeiculoAsync();
-        var servico = await CadastrarServicoAsync("Troca de Amortecedor", 300.00m);
-
-        var contagemAntes = (await _client.GetFromJsonAsync<List<OrdemDeServicoResponse>>("/api/ordensdeservico", JsonDefaults.Options))!.Count;
-
-        var request = new AbrirOrdemDeServicoCompletaRequest
-        {
-            ClienteId = cliente!.Id,
-            VeiculoId = veiculo!.Id,
-            ServicosIds = [servico!.Id],
-            Pecas = [new PecaRequest { EstoqueId = Guid.NewGuid(), Quantidade = 1 }]
-        };
-
-        var response = await _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa", request);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var contagemDepois = (await _client.GetFromJsonAsync<List<OrdemDeServicoResponse>>("/api/ordensdeservico", JsonDefaults.Options))!.Count;
-        contagemDepois.Should().Be(contagemAntes);
-    }
-
-    [Fact]
-    public async Task POST_AbrirCompleta_ComQuantidadeMenorOuIgualAZero_DeveRetornar400()
-    {
-        var cliente = await CadastrarClienteAsync();
-        var veiculo = await CadastrarVeiculoAsync();
-        var servico = await CadastrarServicoAsync("Troca de Vela", 60.00m);
-        var estoque = await CadastrarEstoqueAsync("Vela de Ignicao", 20, 15.00m);
-
-        var request = new AbrirOrdemDeServicoCompletaRequest
-        {
-            ClienteId = cliente!.Id,
-            VeiculoId = veiculo!.Id,
-            ServicosIds = [servico!.Id],
-            Pecas = [new PecaRequest { EstoqueId = estoque!.Id, Quantidade = 0 }]
-        };
-
-        var response = await _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa", request);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
-
-    [Fact]
-    public async Task POST_AbrirCompleta_NumeroOS_DeveSeguirFormatoSequencial()
-    {
-        var os = await CriarOrdemDeServicoAsync();
-
-        os!.NumeroOS.Should().MatchRegex(@"^OS-\d{4}-\d{5}$");
-    }
-
-    [Fact]
-    public async Task POST_AbrirCompleta_SemTokenJWT_DeveRetornar401()
-    {
-        var cliente = await CadastrarClienteAsync();
-        var veiculo = await CadastrarVeiculoAsync();
-        var servico = await CadastrarServicoAsync("Servico Sem Token", 40.00m);
-
-        var request = new AbrirOrdemDeServicoCompletaRequest
-        {
-            ClienteId = cliente!.Id,
-            VeiculoId = veiculo!.Id,
-            ServicosIds = [servico!.Id],
-            Pecas = []
-        };
-
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/ordensdeservico/abertura-completa")
-        {
-            Content = JsonContent.Create(request)
-        };
-        httpRequest.Headers.Add("X-Test-No-Auth", "true");
-
-        var response = await _client.SendAsync(httpRequest);
+        var response = await _client.SendAsync(request);
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
-    [Fact]
-    public async Task POST_RotaAntigaOrdensDeServico_DeveRetornar404()
-    {
-        var response = await _client.PostAsJsonAsync("/api/ordensdeservico", new { });
-
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    // ── GET /api/ordensdeservico/{id} ────────────────────────────────────────
+    // ── Itens ────────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task GET_ObterOrdemDeServico_ComIdExistente_DeveRetornar200()
+    public async Task POST_AdicionarServico_DeveIniciarDiagnostico()
     {
-        var os = await CriarOrdemDeServicoAsync();
+        var os = await CriarOSAsync();
+        var outro = await CadastrarServicoAsync("Higienização", 70m);
 
-        var response = await _client.GetAsync($"/api/ordensdeservico/{os!.Id}");
+        var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{os.Id}/servicos", new AdicionarServicoRequest { ServicoId = outro.Id });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
-        resultado!.Id.Should().Be(os.Id);
-        resultado.NumeroOS.Should().Be(os.NumeroOS);
+        var atualizada = (await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options))!;
+        atualizada.Status.Should().Be(StatusOrdemDeServico.EmDiagnostico);
+        atualizada.Servicos.Should().HaveCount(2);
     }
 
     [Fact]
-    public async Task GET_ObterOrdemDeServico_ComIdInexistente_DeveRetornar404()
+    public async Task POST_AdicionarPeca_DeveIncluirComValorDoMomento()
     {
-        var response = await _client.GetAsync($"/api/ordensdeservico/{Guid.NewGuid()}");
+        var os = await CriarOSAsync();
+        var peca = _factory.Estoque.Cadastrar("Bateria", 480m, 3);
 
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    // ── POST /api/ordensdeservico/{id}/servicos ──────────────────────────────
-
-    [Fact]
-    public async Task POST_AdicionarServico_ComDadosValidos_DeveRetornar200()
-    {
-        var os = await CriarOrdemDeServicoAsync();
-        var servico = await CadastrarServicoAsync("Alinhamento", 120.00m);
-
-        var request = new AdicionarServicoRequest { ServicoId = servico!.Id };
-
-        var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{os!.Id}/servicos", request);
+        var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{os.Id}/pecas", new AdicionarPecaRequest { EstoqueId = peca.Id, Quantidade = 1 });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
-        resultado!.Servicos.Should().Contain(s => s.ServicoId == servico.Id);
+        (await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options))!
+            .Pecas.Should().ContainSingle(p => p.EstoqueId == peca.Id && p.ValorUnitario == 480m);
     }
 
     [Fact]
-    public async Task POST_AdicionarServico_ComOsInexistente_DeveRetornar404()
+    public async Task POST_AdicionarItem_DepoisDoDiagnostico_DeveRetornar409()
     {
-        var servico = await CadastrarServicoAsync("Balanceamento", 80.00m);
+        var os = await CriarOSAsync();
+        await AlterarStatusAsync(os.Id, StatusOrdemDeServico.EmDiagnostico);
+        await AlterarStatusAsync(os.Id, StatusOrdemDeServico.AguardandoAprovacao);
+        var servico = await CadastrarServicoAsync("Pintura", 900m);
 
-        var request = new AdicionarServicoRequest { ServicoId = servico!.Id };
+        var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{os.Id}/servicos", new AdicionarServicoRequest { ServicoId = servico.Id });
 
-        var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{Guid.NewGuid()}/servicos", request);
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task POST_AdicionarServico_OSInexistente_DeveRetornar404()
+    {
+        var servico = await CadastrarServicoAsync("Revisão", 100m);
+
+        var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{Guid.NewGuid()}/servicos", new AdicionarServicoRequest { ServicoId = servico.Id });
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
+    // ── Status e histórico ───────────────────────────────────────────────────
+
     [Fact]
-    public async Task POST_AdicionarServico_ComServicoInexistente_DeveRetornar400()
+    public async Task CicloCompleto_DeveRegistrarHistoricoComCorrelationId()
     {
-        var os = await CriarOrdemDeServicoAsync();
+        var os = await CriarOSAsync();
+        var passos = new[]
+        {
+            StatusOrdemDeServico.EmDiagnostico, StatusOrdemDeServico.AguardandoAprovacao, StatusOrdemDeServico.AguardandoPagamento,
+            StatusOrdemDeServico.EmExecucao, StatusOrdemDeServico.Finalizada, StatusOrdemDeServico.Entregue
+        };
 
-        var request = new AdicionarServicoRequest { ServicoId = Guid.NewGuid() };
+        foreach (var passo in passos)
+            (await AlterarStatusAsync(os.Id, passo, correlationId: $"corr-{passo}")).StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{os!.Id}/servicos", request);
+        var historico = await _client.GetFromJsonAsync<List<HistoricoStatusResponse>>($"/api/ordensdeservico/{os.Id}/historico", JsonDefaults.Options);
+        historico!.Select(h => h.StatusNovo).Should().Equal(
+            "Recebida", "EmDiagnostico", "AguardandoAprovacao", "AguardandoPagamento", "EmExecucao", "Finalizada", "Entregue");
+        historico.Last().Should().Match<HistoricoStatusResponse>(h => h.Origem == "Manual" && h.CorrelationId == "corr-Entregue");
+    }
+
+    [Fact]
+    public async Task PATCH_Status_TransicaoInvalida_DeveRetornar409()
+    {
+        var os = await CriarOSAsync();
+
+        var response = await AlterarStatusAsync(os.Id, StatusOrdemDeServico.Entregue);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task PATCH_Status_ParaRecebida_DeveRetornar400()
+    {
+        var os = await CriarOSAsync();
+
+        var response = await AlterarStatusAsync(os.Id, StatusOrdemDeServico.Recebida);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
-    // ── POST /api/ordensdeservico/{id}/estoques ──────────────────────────────
-
     [Fact]
-    public async Task POST_AdicionarEstoque_ComDadosValidos_DeveRetornar200()
+    public async Task GET_Listar_NaoDeveTrazerCanceladas()
     {
-        var os = await CriarOrdemDeServicoAsync();
-        var estoque = await CadastrarEstoqueAsync("Oleo Motor", 10, 45.00m);
+        var aberta = await CriarOSAsync();
+        var cancelada = await CriarOSAsync();
+        await AlterarStatusAsync(cancelada.Id, StatusOrdemDeServico.Cancelada);
 
-        var request = new AdicionarEstoqueRequest { EstoqueId = estoque!.Id, Quantidade = 2 };
+        var lista = await _client.GetFromJsonAsync<List<OrdemDeServicoResponse>>("/api/ordensdeservico", JsonDefaults.Options);
 
-        var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{os!.Id}/estoques", request);
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
-        resultado!.Estoques.Should().HaveCount(1);
-        resultado.Estoques.First().EstoqueId.Should().Be(estoque.Id);
-        resultado.Estoques.First().Quantidade.Should().Be(2);
+        lista.Should().Contain(o => o.Id == aberta.Id);
+        lista.Should().NotContain(o => o.Id == cancelada.Id);
     }
 
     [Fact]
-    public async Task POST_AdicionarEstoque_ComOsInexistente_DeveRetornar404()
+    public async Task GET_Obter_Inexistente_DeveRetornar404()
     {
-        var estoque = await CadastrarEstoqueAsync("Filtro Combustivel", 5, 30.00m);
+        (await _client.GetAsync($"/api/ordensdeservico/{Guid.NewGuid()}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await _client.GetAsync($"/api/ordensdeservico/{Guid.NewGuid()}/historico")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
 
-        var request = new AdicionarEstoqueRequest { EstoqueId = estoque!.Id, Quantidade = 1 };
+    // ── Acompanhamento público ───────────────────────────────────────────────
 
-        var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{Guid.NewGuid()}/estoques", request);
+    [Fact]
+    public async Task GET_Acompanhar_SemToken_DeveMostrarEtapas()
+    {
+        var os = await CriarOSAsync();
+        await AlterarStatusAsync(os.Id, StatusOrdemDeServico.EmDiagnostico);
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/ordensdeservico/acompanhar/{os.NumeroOS}");
+        request.Headers.Add("X-Test-No-Auth", "1");
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var acompanhamento = (await response.Content.ReadFromJsonAsync<AcompanhamentoOSResponse>(JsonDefaults.Options))!;
+        acompanhamento.Status.Should().Be("EmDiagnostico");
+        acompanhamento.Historico.Select(h => h.Status).Should().Equal("Recebida", "EmDiagnostico");
+    }
+
+    [Fact]
+    public async Task GET_Acompanhar_Inexistente_DeveRetornar404()
+    {
+        var response = await _client.GetAsync("/api/ordensdeservico/acompanhar/OS-1999-00001");
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]
-    public async Task POST_AdicionarEstoque_ComEstoqueInexistente_DeveRetornar400()
+    public async Task RotasQueSairamDoOS_DevemRetornar404()
     {
-        var os = await CriarOrdemDeServicoAsync();
+        var os = await CriarOSAsync();
 
-        var request = new AdicionarEstoqueRequest { EstoqueId = Guid.NewGuid(), Quantidade = 1 };
-
-        var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{os!.Id}/estoques", request);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await _client.GetAsync("/api/estoques")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await _client.PostAsync($"/api/ordensdeservico/{os.Id}/orcamento", null)).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await _client.GetAsync("/api/ordensdeservico/aging")).StatusCode.Should().NotBe(HttpStatusCode.OK);
     }
 
-    // ── PATCH /api/ordensdeservico/{id}/status ───────────────────────────────
+    // ── Apoio ────────────────────────────────────────────────────────────────
 
-    [Fact]
-    public async Task PATCH_AlterarStatus_ParaFinalizada_DeveRetornar200()
-    {
-        var os = await CriarOrdemDeServicoAsync();
-
-        var request = new AlterarStatusRequest { Status = StatusOrdemDeServico.Finalizada };
-
-        var response = await _client.PatchAsJsonAsync($"/api/ordensdeservico/{os!.Id}/status", request);
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
-        resultado!.Status.Should().Be(StatusOrdemDeServico.Finalizada);
-    }
-
-    [Fact]
-    public async Task PATCH_AlterarStatus_ComOsInexistente_DeveRetornar404()
-    {
-        var request = new AlterarStatusRequest { Status = StatusOrdemDeServico.Entregue };
-
-        var response = await _client.PatchAsJsonAsync($"/api/ordensdeservico/{Guid.NewGuid()}/status", request);
-
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    // ── GET /api/ordensdeservico/acompanhar/{numeroOS} ───────────────────────
-
-    [Fact]
-    public async Task GET_Acompanhar_ComNumeroOSExistente_DeveRetornar200()
-    {
-        var os = await CriarOrdemDeServicoAsync();
-
-        var response = await _client.GetAsync($"/api/ordensdeservico/acompanhar/{os!.NumeroOS}");
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-    }
-
-    [Fact]
-    public async Task GET_Acompanhar_ComNumeroOSInexistente_DeveRetornar404()
-    {
-        var response = await _client.GetAsync("/api/ordensdeservico/acompanhar/OS-2099-99999");
-
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    // ── Helpers ──────────────────────────────────────────────────────────────
-
-    private async Task<OrdemDeServicoResponse?> CriarOrdemDeServicoAsync()
+    private async Task<HttpResponseMessage> AbrirAsync(List<Guid> servicos, List<PecaRequest> pecas)
     {
         var cliente = await CadastrarClienteAsync();
         var veiculo = await CadastrarVeiculoAsync();
-        var servico = await CadastrarServicoAsync("Servico Base " + Guid.NewGuid().ToString("N")[..8], 99.00m);
-
-        var request = new AbrirOrdemDeServicoCompletaRequest
+        return await _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa", new AbrirOrdemDeServicoCompletaRequest
         {
-            ClienteId = cliente!.Id,
-            VeiculoId = veiculo!.Id,
-            ServicosIds = [servico!.Id],
-            Pecas = []
-        };
-
-        var response = await _client.PostAsJsonAsync("/api/ordensdeservico/abertura-completa", request);
-        response.StatusCode.Should().Be(HttpStatusCode.Created,
-            $"Falha ao criar OS: cliente={cliente.Id}, veiculo={veiculo.Id}, servico={servico.Id}, status={response.StatusCode}");
-        return await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
+            ClienteId = cliente.Id, VeiculoId = veiculo.Id, ServicosIds = servicos, Pecas = pecas
+        });
     }
 
-    private async Task<ClienteResponse?> CadastrarClienteAsync()
+    private async Task<OrdemDeServicoResponse> CriarOSAsync()
     {
-        var request = new CriarClienteRequest
+        var servico = await CadastrarServicoAsync("Serviço " + Guid.NewGuid().ToString("N")[..8], 99m);
+        var response = await AbrirAsync([servico.Id], []);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        return (await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options))!;
+    }
+
+    private Task<HttpResponseMessage> AlterarStatusAsync(Guid id, StatusOrdemDeServico status, string? correlationId = null)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/api/ordensdeservico/{id}/status")
+        {
+            Content = JsonContent.Create(new AlterarStatusRequest { Status = status }, options: JsonDefaults.Options)
+        };
+        if (correlationId is not null)
+            request.Headers.Add("X-Correlation-Id", correlationId);
+        return _client.SendAsync(request);
+    }
+
+    private async Task<ClienteResponse> CadastrarClienteAsync()
+    {
+        var response = await _client.PostAsJsonAsync("/api/clientes", new CriarClienteRequest
         {
             Nome = "Cliente OS Teste",
             Documento = Dados.Cpf(),
@@ -515,353 +315,29 @@ public class OrdensDeServicoControllerTests : IClassFixture<ApiFactory>
             Bairro = "Centro",
             Cidade = "Sao Paulo",
             Estado = "SP",
-            Cep = "01234567"
-        };
-
-        var response = await _client.PostAsJsonAsync("/api/clientes", request);
-        response.StatusCode.Should().Be(HttpStatusCode.Created,
-            $"Falha ao cadastrar cliente doc={request.Documento} email={request.Email}, status={response.StatusCode}");
-        return await response.Content.ReadFromJsonAsync<ClienteResponse>(JsonDefaults.Options);
+            Cep = "01001000"
+        });
+        response.StatusCode.Should().Be(HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
+        return (await response.Content.ReadFromJsonAsync<ClienteResponse>(JsonDefaults.Options))!;
     }
 
-    private async Task<VeiculoResponse?> CadastrarVeiculoAsync()
+    private async Task<VeiculoResponse> CadastrarVeiculoAsync()
     {
-        var request = new CriarVeiculoRequest
+        var response = await _client.PostAsJsonAsync("/api/veiculos", new CriarVeiculoRequest
         {
             MarcaVeiculo = "Toyota",
             ModeloVeiculo = "Corolla",
             PlacaVeiculo = Dados.Placa(),
             AnoVeiculo = 2022,
             PrecoVeiculo = 90000
-        };
-
-        var response = await _client.PostAsJsonAsync("/api/veiculos", request);
-        response.StatusCode.Should().Be(HttpStatusCode.Created,
-            $"Falha ao cadastrar veiculo placa={request.PlacaVeiculo}, status={response.StatusCode}");
-        return await response.Content.ReadFromJsonAsync<VeiculoResponse>(JsonDefaults.Options);
+        });
+        response.StatusCode.Should().Be(HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
+        return (await response.Content.ReadFromJsonAsync<VeiculoResponse>(JsonDefaults.Options))!;
     }
 
-    private async Task<ServicoResponse?> CadastrarServicoAsync(string nome, decimal preco)
+    private async Task<ServicoResponse> CadastrarServicoAsync(string nome, decimal preco)
     {
-        var request = new CriarServicoRequest { NomeServico = nome, Preco = preco };
-        var response = await _client.PostAsJsonAsync("/api/servicos", request);
-        return await response.Content.ReadFromJsonAsync<ServicoResponse>(JsonDefaults.Options);
-    }
-
-    private async Task<EstoqueResponse?> CadastrarEstoqueAsync(string nome, int quantidade, decimal valor)
-    {
-        var request = new CriarEstoqueRequest
-        {
-            Nome = nome,
-            Quantidade = quantidade,
-            Valor = valor,
-            DataEntrada = DateTime.UtcNow,
-            Fornecedor = "Fornecedor Teste"
-        };
-
-        var response = await _client.PostAsJsonAsync("/api/estoques", request);
-        return await response.Content.ReadFromJsonAsync<EstoqueResponse>(JsonDefaults.Options);
-    }
-
-    // ── POST /api/ordensdeservico/{id}/orcamento ─────────────────────────────
-
-    [Fact]
-    public async Task POST_GerarOrcamento_ComServicosEEstoques_DeveRetornar200ComPrecoCalculado()
-    {
-        var os = await CriarOrdemDeServicoAsync();
-        var servico = await CadastrarServicoAsync("Troca de Oleo", 150.00m);
-        var estoque = await CadastrarEstoqueAsync("Oleo 5W30", 10, 45.00m);
-
-        await _client.PostAsJsonAsync($"/api/ordensdeservico/{os!.Id}/servicos",
-            new AdicionarServicoRequest { ServicoId = servico!.Id });
-        await _client.PostAsJsonAsync($"/api/ordensdeservico/{os.Id}/estoques",
-            new AdicionarEstoqueRequest { EstoqueId = estoque!.Id, Quantidade = 2 });
-
-        var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{os.Id}/orcamento", new { });
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
-        resultado!.Orcamento.Should().NotBeNull();
-        // SPEC_DEVIATION: CriarOrdemDeServicoAsync() now opens the OS via abertura-completa,
-        // which links a base servico (preco 99.00m) since the endpoint requires >= 1 ServicosIds.
-        // Reason: total includes that base servico's price: 99 (base) + 150 + (45 * 2) = 339.
-        resultado.Orcamento!.Preco.Should().Be(339.00m);
-        resultado.Orcamento.Status.Should().Be(StatusOrcamento.Pendente);
-    }
-
-    [Fact]
-    public async Task POST_GerarOrcamento_SemEstoquesNemServicosAdicionais_DeveRetornar200ComPrecoDoServicoBase()
-    {
-        var os = await CriarOrdemDeServicoAsync();
-
-        var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{os!.Id}/orcamento", new { });
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
-        resultado!.Orcamento.Should().NotBeNull();
-        // SPEC_DEVIATION: CriarOrdemDeServicoAsync() now opens the OS via abertura-completa,
-        // which links a base servico (preco 99.00m) since the endpoint requires >= 1 ServicosIds.
-        // Reason: with no additional servicos/estoques, the orcamento total equals the base servico's price.
-        resultado.Orcamento!.Preco.Should().Be(99.00m);
-    }
-
-    [Fact]
-    public async Task POST_GerarOrcamento_ComOsInexistente_DeveRetornar404()
-    {
-        var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{Guid.NewGuid()}/orcamento", new { });
-
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    // ── POST /api/ordensdeservico/{id}/orcamento/enviar ──────────────────────
-
-    [Fact]
-    public async Task POST_EnviarOrcamento_ComOrcamentoGerado_DeveRetornar200ComStatusAguardandoAprovacao()
-    {
-        var os = await CriarOrdemDeServicoAsync();
-        await _client.PostAsJsonAsync($"/api/ordensdeservico/{os!.Id}/orcamento", new { });
-
-        var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{os.Id}/orcamento/enviar", new { });
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
-        resultado!.Status.Should().Be(StatusOrdemDeServico.AguardandoAprovacao);
-    }
-
-    [Fact]
-    public async Task POST_EnviarOrcamento_SemOrcamento_DeveRetornar404()
-    {
-        var os = await CriarOrdemDeServicoAsync();
-
-        var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{os!.Id}/orcamento/enviar", new { });
-
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    [Fact]
-    public async Task POST_EnviarOrcamento_ComOsInexistente_DeveRetornar404()
-    {
-        var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{Guid.NewGuid()}/orcamento/enviar", new { });
-
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    // ── PATCH /api/ordensdeservico/{id}/orcamento/resposta ───────────────────
-
-    [Fact]
-    public async Task PATCH_ResponderOrcamento_Aprovado_DeveRetornar200ComStatusEmExecucao()
-    {
-        var os = await CriarOsComOrcamentoEnviadoAsync();
-
-        var response = await _client.PatchAsJsonAsync($"/api/ordensdeservico/{os!.Id}/orcamento/resposta",
-            new ResponderOrcamentoRequest { Aprovado = true });
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
-        resultado!.Status.Should().Be(StatusOrdemDeServico.EmExecucao);
-        resultado.Orcamento!.Status.Should().Be(StatusOrcamento.Aprovado);
-    }
-
-    [Fact]
-    public async Task PATCH_ResponderOrcamento_Aprovado_DeveDecrementarQuantidadeNoEstoque()
-    {
-        var estoque = await CadastrarEstoqueAsync("Filtro de Oleo", 10, 30.00m);
-        var os = await CriarOrdemDeServicoAsync();
-
-        await _client.PostAsJsonAsync($"/api/ordensdeservico/{os!.Id}/estoques",
-            new AdicionarEstoqueRequest { EstoqueId = estoque!.Id, Quantidade = 3 });
-        await _client.PostAsJsonAsync($"/api/ordensdeservico/{os.Id}/orcamento", new { });
-        await _client.PostAsJsonAsync($"/api/ordensdeservico/{os.Id}/orcamento/enviar", new { });
-
-        await _client.PatchAsJsonAsync($"/api/ordensdeservico/{os.Id}/orcamento/resposta",
-            new ResponderOrcamentoRequest { Aprovado = true });
-
-        var estoqueAtualizado = await _client.GetFromJsonAsync<EstoqueResponse>($"/api/estoques/{estoque.Id}", JsonDefaults.Options);
-        estoqueAtualizado!.Quantidade.Should().Be(7); // 10 - 3
-    }
-
-    [Fact]
-    public async Task PATCH_ResponderOrcamento_Reprovado_DeveRetornar200ComStatusFinalizada()
-    {
-        var os = await CriarOsComOrcamentoEnviadoAsync();
-
-        var response = await _client.PatchAsJsonAsync($"/api/ordensdeservico/{os!.Id}/orcamento/resposta",
-            new ResponderOrcamentoRequest { Aprovado = false });
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
-        resultado!.Status.Should().Be(StatusOrdemDeServico.Finalizada);
-        resultado.Orcamento!.Status.Should().Be(StatusOrcamento.Rejeitado);
-    }
-
-    [Fact]
-    public async Task PATCH_ResponderOrcamento_ComOsInexistente_DeveRetornar404()
-    {
-        var response = await _client.PatchAsJsonAsync($"/api/ordensdeservico/{Guid.NewGuid()}/orcamento/resposta",
-            new ResponderOrcamentoRequest { Aprovado = true });
-
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    [Fact]
-    public async Task PATCH_ResponderOrcamento_SemOrcamento_DeveRetornar404()
-    {
-        var os = await CriarOrdemDeServicoAsync();
-
-        var response = await _client.PatchAsJsonAsync($"/api/ordensdeservico/{os!.Id}/orcamento/resposta",
-            new ResponderOrcamentoRequest { Aprovado = true });
-
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    private async Task<OrdemDeServicoResponse?> CriarOsComOrcamentoEnviadoAsync()
-    {
-        var os = await CriarOrdemDeServicoAsync();
-        await _client.PostAsJsonAsync($"/api/ordensdeservico/{os!.Id}/orcamento", new { });
-        await _client.PostAsJsonAsync($"/api/ordensdeservico/{os.Id}/orcamento/enviar", new { });
-        return os;
-    }
-
-    // ── PATCH /api/ordensdeservico/{numeroOS}/servicos/{servicoItemId}/status ──
-
-    [Fact]
-    public async Task PATCH_AlterarStatusServico_ParaIniciado_DeveRetornar200ComStatusIniciado()
-    {
-        var (os, item) = await CriarOsComServicoAsync();
-
-        var response = await _client.PatchAsJsonAsync(
-            $"/api/ordensdeservico/{os.NumeroOS}/servicos/{item.Id}/status",
-            new AlterarStatusServicoNaOSRequest { Status = StatusExecucaoServico.Iniciado });
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<ServicoItemResponse>(JsonDefaults.Options);
-        resultado!.Status.Should().Be(StatusExecucaoServico.Iniciado);
-        resultado.IniciadaEm.Should().NotBeNull();
-    }
-
-    [Fact]
-    public async Task PATCH_AlterarStatusServico_ParaFinalizado_DeveRetornar200ComStatusFinalizado()
-    {
-        var (os, item) = await CriarOsComServicoIniciadoAsync();
-
-        var response = await _client.PatchAsJsonAsync(
-            $"/api/ordensdeservico/{os.NumeroOS}/servicos/{item.Id}/status",
-            new AlterarStatusServicoNaOSRequest { Status = StatusExecucaoServico.Finalizado });
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<ServicoItemResponse>(JsonDefaults.Options);
-        resultado!.Status.Should().Be(StatusExecucaoServico.Finalizado);
-        resultado.FinalizadaEm.Should().NotBeNull();
-    }
-
-    [Fact]
-    public async Task PATCH_AlterarStatusServico_StatusInvalido_DeveRetornar400()
-    {
-        var (os, item) = await CriarOsComServicoAsync();
-
-        var response = await _client.PatchAsJsonAsync(
-            $"/api/ordensdeservico/{os.NumeroOS}/servicos/{item.Id}/status",
-            new AlterarStatusServicoNaOSRequest { Status = StatusExecucaoServico.Criada });
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
-
-    [Fact]
-    public async Task PATCH_AlterarStatusServico_ComOsInexistente_DeveRetornar404()
-    {
-        var response = await _client.PatchAsJsonAsync(
-            $"/api/ordensdeservico/OS-9999-99999/servicos/{Guid.NewGuid()}/status",
-            new AlterarStatusServicoNaOSRequest { Status = StatusExecucaoServico.Iniciado });
-
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    [Fact]
-    public async Task PATCH_AlterarStatusServico_ComServicoItemInexistente_DeveRetornar404()
-    {
-        var os = await CriarOrdemDeServicoAsync();
-
-        var response = await _client.PatchAsJsonAsync(
-            $"/api/ordensdeservico/{os!.NumeroOS}/servicos/{Guid.NewGuid()}/status",
-            new AlterarStatusServicoNaOSRequest { Status = StatusExecucaoServico.Iniciado });
-
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    [Fact]
-    public async Task PATCH_AlterarStatusServico_IniciarJaIniciado_DeveRetornar400()
-    {
-        var (os, item) = await CriarOsComServicoIniciadoAsync();
-
-        var response = await _client.PatchAsJsonAsync(
-            $"/api/ordensdeservico/{os.NumeroOS}/servicos/{item.Id}/status",
-            new AlterarStatusServicoNaOSRequest { Status = StatusExecucaoServico.Iniciado });
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
-
-    [Fact]
-    public async Task PATCH_AlterarStatusServico_FinalizarSemIniciar_DeveRetornar400()
-    {
-        var (os, item) = await CriarOsComServicoAsync();
-
-        var response = await _client.PatchAsJsonAsync(
-            $"/api/ordensdeservico/{os.NumeroOS}/servicos/{item.Id}/status",
-            new AlterarStatusServicoNaOSRequest { Status = StatusExecucaoServico.Finalizado });
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
-
-    // ── GET /api/ordensdeservico/aging ───────────────────────────────────────
-
-    [Fact]
-    public async Task GET_Aging_SemServicosFinalizados_DeveRetornar200ComListaVazia()
-    {
-        var response = await _client.GetAsync("/api/ordensdeservico/aging");
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = await response.Content.ReadFromJsonAsync<IEnumerable<AgingServicoResponse>>(JsonDefaults.Options);
-        resultado.Should().NotBeNull();
-    }
-
-    [Fact]
-    public async Task GET_Aging_ComServicoFinalizado_DeveRetornar200ComDados()
-    {
-        var (os, item) = await CriarOsComServicoIniciadoAsync();
-        await _client.PatchAsJsonAsync(
-            $"/api/ordensdeservico/{os.NumeroOS}/servicos/{item.Id}/status",
-            new AlterarStatusServicoNaOSRequest { Status = StatusExecucaoServico.Finalizado });
-
-        var response = await _client.GetAsync("/api/ordensdeservico/aging");
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var resultado = (await response.Content.ReadFromJsonAsync<IEnumerable<AgingServicoResponse>>(JsonDefaults.Options))!.ToList();
-        resultado.Should().NotBeEmpty();
-        resultado.Should().Contain(r => r.TotalExecucoes >= 1);
-    }
-
-    // ── Helpers adicionais ───────────────────────────────────────────────────
-
-    private async Task<(OrdemDeServicoResponse os, ServicoItemResponse servicoItem)> CriarOsComServicoAsync()
-    {
-        var os = await CriarOrdemDeServicoAsync();
-        var servico = await CadastrarServicoAsync("Servico " + Guid.NewGuid().ToString("N")[..8], 150.00m);
-
-        var response = await _client.PostAsJsonAsync($"/api/ordensdeservico/{os!.Id}/servicos",
-            new AdicionarServicoRequest { ServicoId = servico!.Id });
-
-        var osAtualizada = await response.Content.ReadFromJsonAsync<OrdemDeServicoResponse>(JsonDefaults.Options);
-        return (osAtualizada!, osAtualizada!.Servicos.First());
-    }
-
-    private async Task<(OrdemDeServicoResponse os, ServicoItemResponse servicoItem)> CriarOsComServicoIniciadoAsync()
-    {
-        var (os, item) = await CriarOsComServicoAsync();
-
-        await _client.PatchAsJsonAsync(
-            $"/api/ordensdeservico/{os.NumeroOS}/servicos/{item.Id}/status",
-            new AlterarStatusServicoNaOSRequest { Status = StatusExecucaoServico.Iniciado });
-
-        return (os, item);
+        var response = await _client.PostAsJsonAsync("/api/servicos", new CriarServicoRequest { NomeServico = nome, Preco = preco });
+        return (await response.Content.ReadFromJsonAsync<ServicoResponse>(JsonDefaults.Options))!;
     }
 }
