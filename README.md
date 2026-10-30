@@ -127,7 +127,66 @@ Também há uma coleção Postman pronta para importar: [Code/Postman/GarageOS.p
 | `GET` | `/api/OrdensDeServico/acompanhar/{numeroOS}` | pública | Acompanhamento pelo cliente, com as etapas |
 | `GET` | `/health/live` · `/health/ready` | pública | Health checks |
 
-Máquina de estados da OS: `Recebida → EmDiagnostico → AguardandoAprovacao → AguardandoPagamento → EmExecucao → Finalizada → Entregue`, e `Cancelada` a partir de qualquer status não final. A partir da etapa 5 a saga conduz as transições do meio.
+Máquina de estados da OS: `Recebida → EmDiagnostico → AguardandoAprovacao → AguardandoPagamento → EmExecucao → Finalizada → Entregue`, e `Cancelada` a partir de qualquer status não final. Do pedido de orçamento até a finalização quem move a OS é a saga; manualmente, a equipe registra só a entrega.
+
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| `POST` | `/api/OrdensDeServico/{id}/orcamento/solicitar` | Admin | Fecha o diagnóstico e inicia a saga (202) |
+| `GET` | `/api/OrdensDeServico/{id}/saga` | Admin | Etapa atual da saga, IDs do orçamento e do pagamento, motivo do cancelamento |
+
+---
+
+## Saga Pattern: por que orquestração
+
+A transação que no monólito era um único `SaveChanges` (aprovar o orçamento, mudar o status da OS e dar baixa no estoque) hoje atravessa três bancos (dois PostgreSQL e um DynamoDB) e o Mercado Pago. Não existe transação distribuída entre eles, então ela virou uma **saga orquestrada**, com o orquestrador aqui no OS Service ([ADR 0005](docs/adrs/0005-saga-orquestrada.md)).
+
+**Por que orquestrada, e não coreografada:**
+
+- **O fluxo é linear e já existia no domínio.** O enum de status da OS era uma máquina de estados escrita à mão; a orquestração deixa essa ordem explícita num arquivo só ([`OrdemDeServicoStateMachine`](Code/GarageOS.Infrastructure/Saga/OrdemDeServicoStateMachine.cs)), em vez de espalhá-la por handlers em três repositórios.
+- **A compensação depende de onde a falha aconteceu.** Antes do pagamento basta liberar as peças e cancelar o orçamento; depois dele, também é preciso estornar. Quem sabe a etapa é o coordenador.
+- **Há prazos com dono.** Aprovação e pagamento expiram; alguém precisa agendar e reagir. Na coreografia esse dono não existe.
+- **O estado é consultável.** `GET /saga` mostra em que passo a OS está; na coreografia ele só existiria como inferência sobre eventos espalhados, difícil de mostrar e de depurar.
+- **O OS já é o dono do ciclo de vida.** Pôr o orquestrador nele não cria acoplamento novo.
+
+O custo aceito: o OS conhece os contratos dos outros dois serviços.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant OS as OS Service (saga)
+    participant B as Billing
+    participant E as Execução
+    OS->>B: GerarOrcamento
+    B-->>OS: OrcamentoEnviado (OS: AguardandoAprovacao)
+    Note over B: cliente aprova (PATCH /resposta)
+    B-->>OS: OrcamentoAprovado
+    OS->>E: ReservarPecas
+    E-->>OS: PecasReservadas
+    OS->>B: SolicitarPagamento (OS: AguardandoPagamento)
+    B-->>OS: PagamentoConfirmado
+    OS->>E: IniciarExecucao (OS: EmExecucao)
+    E-->>OS: ExecucaoFinalizada (OS: Finalizada)
+```
+
+**Compensações** (cada passo desfaz só o que já tinha acontecido; a OS termina em `Cancelada` com o motivo na saga):
+
+| Falha | O que a saga faz |
+|---|---|
+| Cliente recusa o orçamento | nada a desfazer |
+| Prazo de aprovação expira | `CancelarOrcamento` |
+| Peças indisponíveis | `CancelarOrcamento` |
+| Pagamento recusado ou prazo expirado | `LiberarReservaPecas` → `CancelarOrcamento` |
+| Execução falhou | `EstornarPagamento` → `LiberarReservaPecas` → `CancelarOrcamento` |
+| Pagamento confirmado depois do cancelamento | `EstornarPagamento` |
+
+**Mensagem repetida não causa efeito duplicado:**
+
+- *OS e Execução* usam o **outbox transacional** do MassTransit no PostgreSQL: a mudança e a mensagem a publicar vão no mesmo commit, e o **inbox** descarta a mesma mensagem entregue duas vezes.
+- *Todo consumidor é idempotente por chave de negócio*: um orçamento por OS (marcador gravado na mesma transação no DynamoDB), uma reserva por OS (índice único), uma execução por OS. Repetido, o pedido devolve o que já existe e confirma de novo.
+- *A saga ignora evento fora de hora* (repetido com outro id, fora de ordem) em vez de mandá-lo para a fila de erro, e pula status que a OS já alcançou.
+- *Erro técnico* tem retry com intervalo crescente; o que sobra vai para a fila `_error` (a DLQ), visível no console do SQS.
+
+Mensageria: Amazon SQS/SNS com MassTransit 8.5.11 (Apache-2.0), contratos em [`Contracts/V1/Mensagens.cs`](Code/GarageOS.Application/Contracts/V1/Mensagens.cs), idênticos nos três serviços.
 
 Há ainda os CRUDs de `Clientes`, `Veiculos`, `Servicos` e `Estoques`, todos protegidos por JWT.
 

@@ -49,6 +49,23 @@ public class MetricasNewRelic : IMetricasDeNegocio
             ["motivo"] = motivo
         });
 
+    /// <inheritdoc />
+    public void SagaAvancou(string numeroOS, string etapa) =>
+        Registrar("SagaEtapa", new Dictionary<string, object>
+        {
+            ["numeroOS"] = numeroOS,
+            ["etapa"] = etapa
+        });
+
+    /// <inheritdoc />
+    public void SagaCompensou(string numeroOS, string falha, string compensacoes) =>
+        Registrar("SagaCompensacao", new Dictionary<string, object>
+        {
+            ["numeroOS"] = numeroOS,
+            ["falha"] = falha,
+            ["compensacoes"] = compensacoes
+        });
+
     private void Registrar(string evento, Dictionary<string, object> atributos)
     {
         try

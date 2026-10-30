@@ -23,6 +23,10 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        // Sem SQS nos testes: o MassTransit roda em memória, com o outbox e o
+        // repositório da saga de verdade, no PostgreSQL do container.
+        builder.UseSetting("Mensageria:Transporte", "InMemory");
+
         builder.ConfigureServices(services =>
         {
             var toRemove = services

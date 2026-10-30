@@ -388,26 +388,22 @@
       ]
     },
     {
-      "name": "04 - Ciclo de Status (manual até a saga, etapa 5)",
+      "name": "04 - Saga (orçamento, pagamento, execução)",
       "item": [
         {
-          "name": "PATCH Status -> AguardandoAprovacao",
+          "name": "POST Solicitar orçamento (inicia a saga)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "const json = pm.response.json();",
-                  "pm.test('OS em AguardandoAprovacao', () => {",
-                  "  pm.response.to.have.status(200);",
-                  "  pm.expect(json.status).to.eql('AguardandoAprovacao');",
-                  "});"
+                  "pm.test('Pedido aceito', () => pm.response.to.have.status(202));"
                 ]
               }
             }
           ],
           "request": {
-            "method": "PATCH",
+            "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
@@ -418,32 +414,28 @@
                 "value": "Bearer {{token}}"
               }
             ],
-            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}/status",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"AguardandoAprovacao\"\n}"
-            },
-            "description": "Orçamento pedido ao Billing Service."
+            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}/orcamento/solicitar",
+            "description": "Publica OrcamentoSolicitado. A saga pede o orçamento ao Billing, que o gera e envia; a OS vai para AguardandoAprovacao. O cliente responde no Billing (PATCH /api/orcamentos/{id}/resposta), o pagamento é simulado no Billing (POST /api/orcamentos/{id}/pagamentos/{pid}/simular) e a execução é conduzida no Execução (PATCH /api/execucoes/{id}/status)."
           }
         },
         {
-          "name": "PATCH Status -> AguardandoPagamento",
+          "name": "GET Saga da OS",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
                   "const json = pm.response.json();",
-                  "pm.test('OS em AguardandoPagamento', () => {",
+                  "pm.test('Saga existe', () => {",
                   "  pm.response.to.have.status(200);",
-                  "  pm.expect(json.status).to.eql('AguardandoPagamento');",
+                  "  pm.expect(json.etapa).to.be.a('string');",
                   "});"
                 ]
               }
             }
           ],
           "request": {
-            "method": "PATCH",
+            "method": "GET",
             "header": [
               {
                 "key": "Content-Type",
@@ -454,32 +446,24 @@
                 "value": "Bearer {{token}}"
               }
             ],
-            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}/status",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"AguardandoPagamento\"\n}"
-            },
-            "description": "Cliente aprovou e as peças foram reservadas no Execução."
+            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}/saga",
+            "description": "Etapa atual: Aberta, AguardandoOrcamento, AguardandoAprovacao, ReservandoPecas, AguardandoPagamento, EmExecucao, Finalizada ou Cancelada (com o motivo)."
           }
         },
         {
-          "name": "PATCH Status -> EmExecucao",
+          "name": "GET Histórico (transições feitas pela saga)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "const json = pm.response.json();",
-                  "pm.test('OS em EmExecucao', () => {",
-                  "  pm.response.to.have.status(200);",
-                  "  pm.expect(json.status).to.eql('EmExecucao');",
-                  "});"
+                  "pm.test('Histórico', () => pm.response.to.have.status(200));"
                 ]
               }
             }
           ],
           "request": {
-            "method": "PATCH",
+            "method": "GET",
             "header": [
               {
                 "key": "Content-Type",
@@ -490,59 +474,18 @@
                 "value": "Bearer {{token}}"
               }
             ],
-            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}/status",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"EmExecucao\"\n}"
-            },
-            "description": "Pagamento confirmado."
+            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}/historico"
           }
         },
         {
-          "name": "PATCH Status -> Finalizada",
+          "name": "PATCH Registrar entrega (Finalizada -> Entregue)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
                   "const json = pm.response.json();",
-                  "pm.test('OS em Finalizada', () => {",
-                  "  pm.response.to.have.status(200);",
-                  "  pm.expect(json.status).to.eql('Finalizada');",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}/status",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"Finalizada\"\n}"
-            },
-            "description": "Execução concluída no Execução Service."
-          }
-        },
-        {
-          "name": "PATCH Status -> Entregue",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const json = pm.response.json();",
-                  "pm.test('OS em Entregue', () => {",
+                  "pm.test('OS entregue', () => {",
                   "  pm.response.to.have.status(200);",
                   "  pm.expect(json.status).to.eql('Entregue');",
                   "});"
@@ -567,41 +510,7 @@
               "mode": "raw",
               "raw": "{\n  \"status\": \"Entregue\"\n}"
             },
-            "description": "Veículo entregue ao cliente."
-          }
-        },
-        {
-          "name": "PATCH Status inválido (Entregue -> Recebida) = 400/409",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Transição recusada', () => {",
-                  "  pm.expect(pm.response.code).to.be.oneOf([400, 409]);",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "url": "{{baseUrl}}/api/ordensdeservico/{{osId}}/status",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"Recebida\"\n}"
-            },
-            "description": "A máquina de estados recusa transições fora da tabela."
+            "description": "Única mudança manual: a entrega, depois que a saga finalizou a OS."
           }
         }
       ]

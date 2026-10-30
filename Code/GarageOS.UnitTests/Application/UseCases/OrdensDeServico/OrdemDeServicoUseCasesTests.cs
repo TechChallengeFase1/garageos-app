@@ -2,6 +2,7 @@ using FluentAssertions;
 using GarageOS.Application.Abstractions;
 using GarageOS.Application.DTOs.OrdensDeServico;
 using GarageOS.Application.UseCases.OrdensDeServico;
+using GarageOS.Contracts.V1;
 using GarageOS.Domain.Entities;
 using GarageOS.Domain.Enums;
 using GarageOS.Domain.Exceptions;
@@ -20,6 +21,7 @@ public class OrdemDeServicoUseCasesTests
     private readonly Mock<IEstoqueClient> _estoque = new();
     private readonly Mock<IMetricasDeNegocio> _metricas = new();
     private readonly Mock<IContextoDaRequisicao> _contexto = new();
+    private readonly Mock<IPublicadorDeEventos> _publicador = new();
 
     private readonly Servico _servico = new("Revisão", 250m);
     private readonly PecaDoEstoque _peca = new(Guid.NewGuid(), "Filtro de ar", 60m, 5);
@@ -33,7 +35,7 @@ public class OrdemDeServicoUseCasesTests
     }
 
     private AbrirOrdemDeServicoCompletaUseCase Abrir() =>
-        new(_repository.Object, _clientes.Object, _veiculos.Object, _servicos.Object, _estoque.Object, _metricas.Object, _contexto.Object);
+        new(_repository.Object, _clientes.Object, _veiculos.Object, _servicos.Object, _estoque.Object, _metricas.Object, _contexto.Object, _publicador.Object);
 
     private AbrirOrdemDeServicoCompletaRequest PedidoValido()
     {
@@ -67,6 +69,71 @@ public class OrdemDeServicoUseCasesTests
         resposta.ValorEstimado.Should().Be(370m);
         _repository.Verify(r => r.AdicionarAsync(It.Is<OrdemDeServico>(os => os.Historico.Single().CorrelationId == "corr-teste")), Times.Once);
         _metricas.Verify(m => m.OrdemDeServicoCriada(resposta.NumeroOS, It.IsAny<Guid>()), Times.Once);
+        _publicador.Verify(p => p.PublicarAsync(It.Is<OrdemDeServicoAberta>(e => e.NumeroOS == resposta.NumeroOS), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SolicitarOrcamento_DevePublicarItensComPrecosCopiados()
+    {
+        var os = new OrdemDeServico("OS-2026-00009", Guid.NewGuid(), Guid.NewGuid(),
+            [(Guid.NewGuid(), "Revisão", 200m)], [(Guid.NewGuid(), "Filtro", 30m, 2)]);
+        _repository.Setup(r => r.ObterPorIdAsync(os.Id)).ReturnsAsync(os);
+        OrcamentoSolicitado? publicado = null;
+        _publicador.Setup(p => p.PublicarAsync(It.IsAny<OrcamentoSolicitado>(), It.IsAny<CancellationToken>()))
+            .Callback<OrcamentoSolicitado, CancellationToken>((m, _) => publicado = m);
+
+        await new SolicitarOrcamentoUseCase(_repository.Object, _publicador.Object).ExecutarAsync(os.Id);
+
+        publicado!.Itens.Should().HaveCount(2);
+        publicado.Itens.Should().Contain(i => i.Tipo == "Peca" && i.Quantidade == 2 && i.ValorUnitario == 30m);
+        publicado.Pecas.Should().ContainSingle(p => p.Quantidade == 2);
+        publicado.Servicos.Should().ContainSingle(s => s.Nome == "Revisão");
+        _repository.Verify(r => r.AtualizarAsync(os), Times.Once);
+    }
+
+    [Fact]
+    public async Task SolicitarOrcamento_DepoisDoDiagnostico_DeveLancar()
+    {
+        var os = OSRecebida();
+        os.AlterarStatus(StatusOrdemDeServico.Cancelada, "Manual");
+        _repository.Setup(r => r.ObterPorIdAsync(os.Id)).ReturnsAsync(os);
+
+        var acao = () => new SolicitarOrcamentoUseCase(_repository.Object, _publicador.Object).ExecutarAsync(os.Id);
+
+        await acao.Should().ThrowAsync<OrdemDeServicoStatusInvalidoException>();
+        _publicador.Verify(p => p.PublicarAsync(It.IsAny<OrcamentoSolicitado>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SolicitarOrcamento_SemServico_DeveLancar()
+    {
+        var os = new OrdemDeServico("OS-2026-00010", Guid.NewGuid(), Guid.NewGuid(), [], []);
+        _repository.Setup(r => r.ObterPorIdAsync(os.Id)).ReturnsAsync(os);
+
+        var acao = () => new SolicitarOrcamentoUseCase(_repository.Object, _publicador.Object).ExecutarAsync(os.Id);
+
+        await acao.Should().ThrowAsync<OrdemDeServicoStatusInvalidoException>();
+    }
+
+    [Fact]
+    public async Task SolicitarOrcamento_OSInexistente_DeveLancar()
+    {
+        var acao = () => new SolicitarOrcamentoUseCase(_repository.Object, _publicador.Object).ExecutarAsync(Guid.NewGuid());
+
+        await acao.Should().ThrowAsync<OrdemDeServicoNaoEncontradaException>();
+    }
+
+    [Fact]
+    public async Task ObterSaga_DeveDevolverOuLancar()
+    {
+        var consulta = new Mock<IConsultaDaSaga>();
+        var id = Guid.NewGuid();
+        consulta.Setup(c => c.ObterAsync(id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new EstadoDaSaga(id, "OS-1", "AguardandoAprovacao", null, null, null, false, null, DateTime.UtcNow, DateTime.UtcNow));
+        var useCase = new ObterSagaUseCase(consulta.Object);
+
+        (await useCase.ExecutarAsync(id)).Etapa.Should().Be("AguardandoAprovacao");
+        await useCase.Invoking(u => u.ExecutarAsync(Guid.NewGuid())).Should().ThrowAsync<OrdemDeServicoNaoEncontradaException>();
     }
 
     [Fact]

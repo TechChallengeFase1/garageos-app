@@ -1,4 +1,5 @@
 using GarageOS.Api.Seguranca;
+using GarageOS.Application.Abstractions;
 using GarageOS.Application.DTOs.OrdensDeServico;
 using GarageOS.Application.UseCases.OrdensDeServico;
 using GarageOS.Application.Validators.OrdensDeServico;
@@ -25,6 +26,8 @@ public class OrdensDeServicoController : ControllerBase
     private readonly AdicionarPecaNaOSUseCase _adicionarPecaUseCase;
     private readonly AlterarStatusOrdemDeServicoUseCase _alterarStatusUseCase;
     private readonly AcompanharOrdemDeServicoUseCase _acompanharUseCase;
+    private readonly SolicitarOrcamentoUseCase _solicitarOrcamentoUseCase;
+    private readonly ObterSagaUseCase _obterSagaUseCase;
 
     /// <summary>Inicializa o controller com os use cases de ordens de serviço</summary>
     public OrdensDeServicoController(
@@ -34,7 +37,9 @@ public class OrdensDeServicoController : ControllerBase
         AdicionarServicoNaOSUseCase adicionarServicoUseCase,
         AdicionarPecaNaOSUseCase adicionarPecaUseCase,
         AlterarStatusOrdemDeServicoUseCase alterarStatusUseCase,
-        AcompanharOrdemDeServicoUseCase acompanharUseCase)
+        AcompanharOrdemDeServicoUseCase acompanharUseCase,
+        SolicitarOrcamentoUseCase solicitarOrcamentoUseCase,
+        ObterSagaUseCase obterSagaUseCase)
     {
         _abrirCompletaUseCase = abrirCompletaUseCase;
         _listarUseCase = listarUseCase;
@@ -43,6 +48,8 @@ public class OrdensDeServicoController : ControllerBase
         _adicionarPecaUseCase = adicionarPecaUseCase;
         _alterarStatusUseCase = alterarStatusUseCase;
         _acompanharUseCase = acompanharUseCase;
+        _solicitarOrcamentoUseCase = solicitarOrcamentoUseCase;
+        _obterSagaUseCase = obterSagaUseCase;
     }
 
     /// <summary>Abre uma nova Ordem de Serviço completa</summary>
@@ -170,18 +177,49 @@ public class OrdensDeServicoController : ControllerBase
         return Ok(await _adicionarPecaUseCase.ExecutarAsync(id, request));
     }
 
-    /// <summary>Altera o status da Ordem de Serviço</summary>
+    /// <summary>Fecha o diagnóstico e pede o orçamento: inicia o fluxo da saga</summary>
     /// <remarks>
-    /// Só as transições da máquina de estados são aceitas:
-    /// - Recebida → EmDiagnostico
-    /// - EmDiagnostico → AguardandoAprovacao
-    /// - AguardandoAprovacao → AguardandoPagamento
-    /// - AguardandoPagamento → EmExecucao
-    /// - EmExecucao → Finalizada
-    /// - Finalizada → Entregue
-    /// - qualquer status não final → Cancelada
+    /// Publica o pedido com os serviços e peças da OS. Daí em diante a saga conduz:
+    /// o Billing gera e envia o orçamento (OS em AguardandoAprovacao), o cliente
+    /// responde no Billing, o Execução reserva as peças, o Billing cobra (OS em
+    /// AguardandoPagamento), o Execução executa (EmExecucao) e conclui (Finalizada).
+    /// Qualquer falha compensa os passos já feitos e cancela a OS.
     ///
-    /// Na etapa 5 a saga conduz as transições do meio; esta rota fica para a operação manual.
+    /// Assíncrono: responde 202. Acompanhe por GET /{id}/saga ou GET /{id}/historico.
+    /// </remarks>
+    /// <response code="202">Pedido aceito; a saga segue em segundo plano</response>
+    /// <response code="404">Ordem de Serviço não encontrada</response>
+    /// <response code="409">A OS já passou do diagnóstico ou não tem serviço</response>
+    [HttpPost("{id:guid}/orcamento/solicitar")]
+    [ProducesResponseType(typeof(OrdemDeServicoResponse), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> SolicitarOrcamento(Guid id)
+    {
+        var resultado = await _solicitarOrcamentoUseCase.ExecutarAsync(id);
+        return AcceptedAtAction(nameof(Saga), new { id }, resultado);
+    }
+
+    /// <summary>Estado da saga da Ordem de Serviço</summary>
+    /// <remarks>
+    /// Etapa atual (Aberta, AguardandoOrcamento, AguardandoAprovacao, ReservandoPecas,
+    /// AguardandoPagamento, EmExecucao, Finalizada ou Cancelada), IDs do orçamento e do
+    /// pagamento nos outros serviços e, se cancelada, o motivo.
+    /// </remarks>
+    /// <response code="200">Estado da saga</response>
+    /// <response code="404">A OS não tem saga</response>
+    [HttpGet("{id:guid}/saga")]
+    [ProducesResponseType(typeof(EstadoDaSaga), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Saga(Guid id)
+    {
+        return Ok(await _obterSagaUseCase.ExecutarAsync(id));
+    }
+
+    /// <summary>Registra a entrega do veículo</summary>
+    /// <remarks>
+    /// Da solicitação do orçamento até a finalização, quem move a OS é a saga. Por esta
+    /// rota a equipe registra só a entrega: Finalizada → Entregue.
     /// </remarks>
     /// <response code="200">Status alterado</response>
     /// <response code="400">Status inválido</response>

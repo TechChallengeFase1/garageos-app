@@ -1,5 +1,7 @@
 using System.Reflection;
 using GarageOS.Domain.Entities;
+using GarageOS.Infrastructure.Saga;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
 namespace GarageOS.Infrastructure.Data;
@@ -24,6 +26,13 @@ public class GarageOSDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+
+        // Saga e outbox/inbox do MassTransit no mesmo banco: a transição da
+        // saga, o status da OS e as mensagens a publicar vão no mesmo commit.
+        new OrdemDeServicoSagaMap().Configure(modelBuilder);
+        modelBuilder.AddInboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddOutboxStateEntity();
         base.OnModelCreating(modelBuilder);
     }
 }
